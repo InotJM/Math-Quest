@@ -6,6 +6,7 @@
     <title>⚡ Math Quest: Trophy Hunt</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        /* Full CSS unchanged (same as your original file) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', 'Roboto', system-ui, sans-serif;
@@ -17,31 +18,20 @@
             padding: 12px;
         }
         .game-wrapper {
-            width: 100%;
-            max-width: 1100px;
-            height: 95vh;
-            max-height: 880px;
-            background: #2d4a2d;
-            border-radius: 48px;
+            width: 100%; max-width: 1100px; height: 95vh; max-height: 880px;
+            background: #2d4a2d; border-radius: 48px;
             box-shadow: 0 20px 30px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,240,0.1);
-            border: 3px solid #b99b6b;
-            overflow: hidden;
-            position: relative;
+            border: 3px solid #b99b6b; overflow: hidden; position: relative;
         }
         .screen {
-            display: none;
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            padding: 16px 20px;
-            overflow-y: auto;
-            background: #fbf5e3;
-            background-image: radial-gradient(circle at 20% 30%, #fff8e7, #f0e6d2);
-            z-index: 1;
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            padding: 16px 20px; overflow-y: auto; background: #fbf5e3;
+            background-image: radial-gradient(circle at 20% 30%, #fff8e7, #f0e6d2); z-index: 1;
         }
         .screen.active { display: block; z-index: 10; }
         .menu-container {
-            display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center;
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; height: 100%; text-align: center;
         }
         .game-title {
             font-size: clamp(2.2rem, 8vw, 3.6rem); font-weight: 800; color: #2d2418;
@@ -171,6 +161,7 @@
             padding: 6px 10px; border-radius: 25px; flex-wrap: wrap;
         }
         .topic-manager-item input { flex: 1; min-width: 100px; margin-right: 5px; }
+        .auth-toggle { margin-top: 15px; color: #3a2c1b; cursor: pointer; text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -179,13 +170,24 @@
     <div id="authScreen" class="screen active">
         <div class="menu-container">
             <div class="game-title">⚡ MATH QUEST ⚡</div>
-            <div class="subtitle">Sign in to continue your adventure</div>
+            <div class="subtitle" id="authSubtitle">Sign in to continue your adventure</div>
             <div style="display: flex; flex-direction: column; gap: 14px; width: min(300px, 85%);">
-                <input type="email" id="authEmail" placeholder="Email" style="padding:12px; border-radius:20px; border:2px solid #7b5d3c;">
-                <input type="password" id="authPassword" placeholder="Password" style="padding:12px; border-radius:20px; border:2px solid #7b5d3c;">
-                <button class="menu-btn" id="signInBtn"><i class="fas fa-sign-in-alt"></i> Sign In</button>
-                <button class="menu-btn" id="signUpBtn"><i class="fas fa-user-plus"></i> Sign Up</button>
+                <!-- Sign-in fields -->
+                <div id="signInFields">
+                    <input type="text" id="authLogin" placeholder="Email or Username" style="padding:12px; border-radius:20px; border:2px solid #7b5d3c;">
+                    <div style="margin-top:10px;">
+                        <input type="password" id="authPasswordSignIn" placeholder="Password" style="padding:12px; border-radius:20px; border:2px solid #7b5d3c;">
+                    </div>
+                    <button class="menu-btn" id="signInBtn" style="margin-top:10px;"><i class="fas fa-sign-in-alt"></i> Sign In</button>
+                </div>
+                <!-- Sign-up fields (hidden by default) -->
+                <div id="signUpFields" style="display:none;">
+                    <input type="email" id="authEmailSignUp" placeholder="Email" style="padding:12px; border-radius:20px; border:2px solid #7b5d3c;">
+                    <input type="password" id="authPasswordSignUp" placeholder="Password" style="padding:12px; border-radius:20px; border:2px solid #7b5d3c; margin-top:10px;">
+                    <button class="menu-btn" id="signUpBtn" style="margin-top:10px;"><i class="fas fa-user-plus"></i> Sign Up</button>
+                </div>
             </div>
+            <p class="auth-toggle" id="toggleAuthMode">Don't have an account? Sign Up</p>
             <p id="authError" style="color:#b33; margin-top:10px;"></p>
         </div>
     </div>
@@ -207,7 +209,7 @@
         </div>
     </div>
 
-    <!-- PROFILE -->
+    <!-- PROFILE SCREEN -->
     <div id="profileScreen" class="screen">
         <div class="content-panel">
             <div class="panel-title"><i class="fas fa-user-edit"></i> Hero Profile</div>
@@ -261,7 +263,7 @@
         </div>
     </div>
 
-    <!-- ACHIEVEMENTS -->
+    <!-- ACHIEVEMENTS SCREEN -->
     <div id="achievementsScreen" class="screen">
         <div class="content-panel">
             <div class="panel-title">🏅 Legendary Feats</div>
@@ -279,6 +281,7 @@
             <p>✔ Adaptive difficulty: streak = harder, mistakes = easier.</p>
             <p>✔ Earn trophies by winning with 3, 5, or 8 topics.</p>
             <p>✔ Teacher can adjust timer and add custom questions.</p>
+            <p>✔ Sign in with email or username!</p>
             <button class="menu-btn back-btn" id="backFromInstructionsBtn">Back</button>
         </div>
     </div>
@@ -297,7 +300,7 @@
             <button class="menu-btn small-btn" id="clearHistoryBtn" style="margin-top:8px;">Clear History</button>
 
             <div class="section-divider"></div>
-            <h3>🎯 Default Topics (for new games)</h3>
+            <h3>🎯 Default Topics</h3>
             <div id="defaultTopicsContainer" class="topic-checkbox-group"></div>
             <button class="menu-btn small-btn" id="saveDefaultTopicsBtn">Save Defaults</button>
 
@@ -320,7 +323,7 @@
             <div id="customQuestionsList"></div>
             <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
                 <input type="text" id="newQuestionText" placeholder="Question" style="flex:2; min-width:120px;">
-                <input type="text" id="newQuestionAnswer" placeholder="Answer (number or fraction)" style="flex:1; min-width:80px;">
+                <input type="text" id="newQuestionAnswer" placeholder="Answer" style="flex:1; min-width:80px;">
                 <button class="menu-btn small-btn" id="addQuestionBtn">Add</button>
             </div>
 
@@ -350,7 +353,7 @@
         </div>
     </div>
 
-    <!-- SETUP -->
+    <!-- SETUP SCREEN -->
     <div id="setupScreen" class="screen">
         <div class="content-panel">
             <div class="panel-title">⚔️ New Adventure</div>
@@ -376,7 +379,7 @@
         </div>
     </div>
 
-    <!-- GAME -->
+    <!-- GAME SCREEN -->
     <div id="gameScreen" class="screen">
         <div class="game-header">
             <h2><i class="fas fa-dragon"></i> Math Hunt</h2>
@@ -418,6 +421,7 @@
     </div>
 </div>
 
+<!-- GAME END MODAL -->
 <div id="gameEndModal" class="modal" style="display:none;">
     <div class="modal-content">
         <h2 id="gameEndTitle">Game Over</h2>
@@ -491,19 +495,35 @@
     let stepElements = [];
     let speechTimeout = null;
 
-    // --- AUTH ---
-    async function checkUser() {
-        const { data: { user } } = await supabase.auth.getUser();
-        currentUser = user;
-        if (user) {
-            await loadAllData();
-            showScreen('menu');
-        } else {
-            showScreen('auth');
-        }
+    // --- AUTH UI TOGGLE ---
+    let authMode = 'signIn'; // or 'signUp'
+    function setAuthMode(mode) {
+        authMode = mode;
+        document.getElementById('signInFields').style.display = (mode === 'signIn') ? 'block' : 'none';
+        document.getElementById('signUpFields').style.display = (mode === 'signUp') ? 'block' : 'none';
+        document.getElementById('toggleAuthMode').innerText = (mode === 'signIn') ? "Don't have an account? Sign Up" : "Already have an account? Sign In";
+        document.getElementById('authSubtitle').innerText = (mode === 'signIn') ? "Sign in to continue your adventure" : "Create a new account";
+        document.getElementById('authError').innerText = '';
     }
 
-    async function signIn(email, password) {
+    // --- AUTH FUNCTIONS (supports username or email) ---
+    async function signIn() {
+        const login = document.getElementById('authLogin').value.trim();
+        const password = document.getElementById('authPasswordSignIn').value;
+        if (!login || !password) return;
+
+        let email = login;
+        // If the input does NOT contain '@', treat as username
+        if (!login.includes('@')) {
+            // Call Supabase function to get email by username
+            const { data, error } = await supabase.rpc('get_email_by_username', { username_input: login });
+            if (error || !data) {
+                document.getElementById('authError').innerText = 'Username not found.';
+                return;
+            }
+            email = data;
+        }
+
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) document.getElementById('authError').innerText = error.message;
         else {
@@ -512,7 +532,10 @@
         }
     }
 
-    async function signUp(email, password) {
+    async function signUp() {
+        const email = document.getElementById('authEmailSignUp').value.trim();
+        const password = document.getElementById('authPasswordSignUp').value;
+        if (!email || !password) return;
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) document.getElementById('authError').innerText = error.message;
         else alert('Sign up successful! You can now sign in.');
@@ -522,6 +545,18 @@
         await supabase.auth.signOut();
         currentUser = null;
         showScreen('auth');
+        setAuthMode('signIn');
+    }
+
+    async function checkUser() {
+        const { data: { user } } = await supabase.auth.getUser();
+        currentUser = user;
+        if (user) {
+            await loadAllData();
+            showScreen('menu');
+        } else {
+            showScreen('auth');
+        }
     }
 
     // --- SUPABASE DATA LOADING ---
@@ -553,7 +588,6 @@
         // Teacher password
         const { data: pwData } = await supabase.from('teacher_settings').select('value').eq('key', 'teacher_password').single();
         if (pwData) teacherPassword = pwData.value;
-        // Timer settings (loaded on game start for current game)
         updateUIElements();
         renderAchievements();
     }
@@ -908,7 +942,7 @@
         }, 700);
     }
 
-    // --- PROFILE MANAGEMENT ---
+    // --- PROFILE MANAGEMENT (unchanged) ---
     function resetProfileView() {
         document.getElementById('profileMenuButtons').style.display = 'flex';
         document.getElementById('createProfilePanel').style.display = 'none';
@@ -956,10 +990,9 @@
         });
     }
 
-    // --- TEACHER PANEL ---
+    // --- TEACHER PANEL (unchanged) ---
     async function renderTeacherPanel() {
         if (!currentUser) return;
-        // Class history (all users)
         const { data: allHistory } = await supabase.from('game_history').select('*');
         const historyRows = [];
         for (let row of allHistory) {
@@ -975,13 +1008,9 @@
                 tbody.appendChild(tr);
             });
         }
-        // Default topics
         renderDefaultTopics();
-        // Topic manager
         renderTopicManager();
-        // Custom question editor
         renderCustomQuestionEditor();
-        // Timer settings load
         const { data: tEn } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_enabled').single();
         const { data: tSec } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_seconds').single();
         document.getElementById('teacherTimerEnabled').value = tEn ? tEn.value : 'true';
@@ -1095,8 +1124,6 @@
         const q = customQuestions[topic][index];
         const newText = prompt('Edit question text:', q.text); if (newText === null) return;
         const newAns = prompt('Edit answer:', q.answer); if (newAns === null) return;
-        // We need to update in DB: find by matching text and answer? Better to store id in custom questions.
-        // Simple approach: delete all for topic, reinsert all edited.
         const updated = [...customQuestions[topic]];
         updated[index] = { ...q, text: newText.trim(), answer: newAns.trim() };
         await supabase.from('custom_questions').delete().eq('topic', topic);
@@ -1141,9 +1168,13 @@
     // --- EVENT BINDINGS ---
     function bindEvents() {
         const $ = (id) => document.getElementById(id);
-        if ($('signInBtn')) $('signInBtn').onclick = () => signIn($('authEmail').value, $('authPassword').value);
-        if ($('signUpBtn')) $('signUpBtn').onclick = () => signUp($('authEmail').value, $('authPassword').value);
+
+        // Auth mode toggle
+        if ($('toggleAuthMode')) $('toggleAuthMode').onclick = () => setAuthMode(authMode === 'signIn' ? 'signUp' : 'signIn');
+        if ($('signInBtn')) $('signInBtn').onclick = signIn;
+        if ($('signUpBtn')) $('signUpBtn').onclick = signUp;
         if ($('signOutBtn')) $('signOutBtn').onclick = signOut;
+
         if ($('playBtn')) $('playBtn').onclick = () => showScreen('setup');
         if ($('profileMenuBtn')) $('profileMenuBtn').onclick = () => showScreen('profile');
         if ($('settingsMenuBtn')) $('settingsMenuBtn').onclick = () => showScreen('settings');
@@ -1193,6 +1224,7 @@
     async function init() {
         initAudio();
         bindEvents();
+        setAuthMode('signIn');
         await checkUser();
     }
 
@@ -1202,4 +1234,3 @@
 </script>
 </body>
 </html>
-
