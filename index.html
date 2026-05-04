@@ -568,52 +568,62 @@
     }
 
     async function signUp() {
-        const firstName = document.getElementById('signUpFirstName').value.trim();
-        const surname = document.getElementById('signUpSurname').value.trim();
-        const username = document.getElementById('signUpUsername').value.trim();
-        const password = document.getElementById('authPasswordSignUp').value;
-        const errorDiv = document.getElementById('authError');
-        errorDiv.innerText = '';
+      const firstName = document.getElementById('signUpFirstName').value.trim();
+      const surname = document.getElementById('signUpSurname').value.trim();
+      const username = document.getElementById('signUpUsername').value.trim();
+      const password = document.getElementById('authPasswordSignUp').value;
+      const errorDiv = document.getElementById('authError');
+    errorDiv.innerText = '';
 
-        if (!firstName || !surname || !username || !password) {
-            errorDiv.innerText = 'Please fill all fields.';
-            return;
-        }
-        if (!isValidUsername(username)) {
-            errorDiv.innerText = 'Username must be 3-20 characters (letters, numbers, dots, hyphens, underscores only). No spaces.';
-            return;
-        }
+    if (!firstName || !surname || !username || !password) {
+        errorDiv.innerText = 'Please fill all fields.';
+        return;
+    }
+    if (!isValidUsername(username)) {
+        errorDiv.innerText = 'Username must be 3-20 characters (letters, numbers, dots, hyphens, underscores only). No spaces.';
+        return;
+    }
 
-        // Check uniqueness
-        const { data: existing } = await supabase.from('profiles').select('username').eq('username', username).maybeSingle();
-        if (existing) {
-            errorDiv.innerText = 'Username already exists. Choose another.';
-            return;
-        }
+    // Check uniqueness
+    const { data: existing } = await supabase.from('profiles').select('username').eq('username', username).maybeSingle();
+    if (existing) {
+        errorDiv.innerText = 'Username already exists. Choose another.';
+        return;
+    }
 
-        const fakeEmail = username + '@mathquest.internal';
-        const { data, error } = await supabase.auth.signUp({ email: fakeEmail, password });
-        if (error) {
-            if (error.message.includes('duplicate')) {
-                errorDiv.innerText = 'Username already taken.';
-            } else {
-                errorDiv.innerText = error.message;
-            }
-            return;
-        }
+    const fakeEmail = username + '@mathquest.internal';
+    const { data, error } = await supabase.auth.signUp({ email: fakeEmail, password });
+    if (error) {
+        console.error('Sign up error:', error);
+        errorDiv.innerText = error.message;
+        return;
+    }
 
-        if (data.user) {
-            const fullName = firstName + ' ' + surname;
-            const { error: updateError } = await supabase.from('profiles').update({ username, name: fullName }).eq('id', data.user.id);
-            if (updateError) {
-                console.error('Profile update failed:', updateError);
-                errorDiv.innerText = 'Account created but profile update failed. Contact admin.';
-            } else {
-                alert('Account created! You can now sign in.');
-                setAuthMode('signIn');
-            }
+    if (data.user) {
+        const fullName = firstName + ' ' + surname;
+        // Use upsert to create / update the profile row (idempotent)
+        const { error: upsertError } = await supabase.from('profiles').upsert({
+            id: data.user.id,
+            username: username,
+            name: fullName,
+            xp: 0,
+            level: 1,
+            total_correct: 0,
+            total_games: 0,
+            best_streak: 0,
+            trophies: { trophy1: false, trophy2: false, trophy3: false },
+            inventory: { timeBoost: 0, extraLife: 0, hint: 0 },
+            achievements: {}
+        });
+        if (upsertError) {
+            console.error('Profile upsert failed:', upsertError);
+            errorDiv.innerText = 'Account created but profile update failed. See console.';
+        } else {
+            alert('Account created! You can now sign in.');
+            setAuthMode('signIn');
         }
     }
+}
 
     async function signOut() {
         await supabase.auth.signOut();
