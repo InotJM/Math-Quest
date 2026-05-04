@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>⚡ Math Quest: Trophy Hunt</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', 'Roboto', system-ui, sans-serif;
+            background: #1a2f1d;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+        }
+        .game-wrapper {
+            width: 100%;
+            max-width: 1100px;
+            height: 95vh;
+            max-height: 880px;
+            background: #2d4a2d;
+            border-radius: 48px;
+            box-shadow: 0 20px 30px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,240,0.1);
+            border: 3px solid #b99b6b;
+            overflow: hidden;
+            position: relative;
+        }
+        .screen {
+            display: none;
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            padding: 16px 20px;
+            overflow-y: auto;
+            background: #fbf5e3;
+            background-image: radial-gradient(circle at 20% 30%, #fff8e7, #f0e6d2);
+            z-index: 1;
+        }
+        .screen.active { display: block; z-index: 10; }
+        .menu-container {
+            display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center;
+        }
+        .game-title {
+            font-size: clamp(2.2rem, 8vw, 3.6rem); font-weight: 800; color: #2d2418;
+            text-shadow: 4px 4px 0 #e7d5b7, 0 6px 0 #6b4f2c; margin-bottom: 8px;
+        }
+        .subtitle { font-size: 1.1rem; color: #3a2c1b; margin-bottom: 30px; font-style: italic; }
+        .menu-buttons { display: flex; flex-direction: column; gap: 14px; width: min(300px, 85%); }
+        .menu-btn {
+            background: #d9a13b; border: none; border-radius: 60px; padding: 14px 20px;
+            font-size: 1.2rem; font-weight: bold; color: #232323; border-bottom: 5px solid #8b5e1a;
+            box-shadow: 0 4px 0 #4d3510; cursor: pointer; display: flex; align-items: center;
+            justify-content: center; gap: 10px; transition: 0.05s linear; user-select: none;
+        }
+        .menu-btn:active { transform: translateY(3px); border-bottom-width: 2px; box-shadow: 0 2px 0 #4d3510; }
+        .content-panel {
+            max-width: 750px; margin: 0 auto; background: rgba(255,250,235,0.92); backdrop-filter: blur(4px);
+            padding: 20px 24px; border-radius: 48px; border: 3px solid #b99b6b;
+            box-shadow: inset 0 2px 8px white, 0 8px 0 #6b4f2c;
+        }
+        .panel-title { font-size: 2rem; text-align: center; margin-bottom: 20px; color: #2d2418; }
+        .input-group { margin-bottom: 18px; }
+        .input-group label { font-weight: bold; display: block; margin-bottom: 6px; }
+        input, select, textarea {
+            width: 100%; padding: 12px 16px; font-size: 1rem; border-radius: 20px;
+            border: 2px solid #7b5d3c; background: #fcf9f0; font-family: inherit;
+        }
+        .back-btn { background: #7c6e5e; border-bottom-color: #4d3e2e; margin-top: 12px; }
+        .game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .game-header h2 { font-size: 1.6rem; color: #2d2418; background: #e9dbbc; padding: 4px 16px; border-radius: 40px; }
+        .menu-icon-btn { background: none; border: none; font-size: 1.8rem; cursor: pointer; color: #4a3722; }
+        .stat-row {
+            display: flex; justify-content: space-between; background: #2c4736; padding: 8px 16px;
+            border-radius: 60px; margin-bottom: 12px; color: #f9eec1; font-weight: bold; font-size: 0.9rem;
+            flex-wrap: wrap; gap: 4px;
+        }
+        .trophy-container { display: flex; justify-content: center; gap: 20px; margin: 8px 0 12px; }
+        .trophy { font-size: 2.4rem; opacity: 0.3; transition: 0.2s; }
+        .trophy.earned { opacity: 1; filter: drop-shadow(0 0 10px gold); }
+        .lives-container { display: flex; justify-content: center; gap: 8px; margin: 6px 0; }
+        .life-heart { font-size: 1.4rem; color: #e55; }
+        .life-heart.lost { color: #aaa; opacity: 0.4; }
+        .powerup-bar { display: flex; justify-content: center; gap: 12px; margin: 8px 0; flex-wrap: wrap; }
+        .powerup-btn {
+            background: #4f6b8a; border: none; border-radius: 40px; padding: 6px 14px;
+            font-weight: bold; font-size: 0.85rem; color: white; border-bottom: 3px solid #2c3e4e;
+            cursor: pointer; display: flex; align-items: center; gap: 6px;
+        }
+        .powerup-btn:active { transform: translateY(2px); }
+        .character-area {
+            background: #e2d5bd; border-radius: 50px; padding: 6px 16px; display: flex;
+            align-items: center; gap: 12px; margin-bottom: 12px; border: 2px solid #b59a6a;
+        }
+        .avatar-icon { font-size: 2.2rem; background: #2d4a2d; border-radius: 50%; padding: 4px; }
+        .speech { background: white; border-radius: 30px; padding: 8px 14px; flex: 1; font-size: 0.9rem; font-weight: 500; }
+        .topic-bar { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-bottom: 12px; }
+        .topic-badge { background: #5f6b4b; color: #f2e7c3; padding: 4px 12px; border-radius: 30px; font-size: 0.75rem; font-weight: bold; }
+        .map-area { background: #aacfaf; padding: 8px; border-radius: 36px; margin-bottom: 12px; border: 2px solid #6f4e2e; }
+        .path-track { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; }
+        .step {
+            width: 36px; height: 36px; background: #d1b48c; border-radius: 50%; display: inline-flex;
+            align-items: center; justify-content: center; font-weight: bold; border: 2px solid #5e3e1c; font-size: 0.9rem;
+        }
+        .step.completed { background: #6f9e4c; color: white; border-color: #2d6210; }
+        .step.active { background: #f7d44a; transform: scale(1.1); box-shadow: 0 0 8px gold; }
+        .progress-text { text-align: center; margin-top: 6px; font-weight: bold; }
+        .timer-area {
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            background: #1e2e1e; padding: 6px 20px; border-radius: 60px; width: fit-content;
+            margin: 10px auto; border: 2px solid #c9a758;
+        }
+        .timer-display { font-size: 1.8rem; font-weight: 800; color: #f3d37c; letter-spacing: 2px; }
+        .question-box {
+            background: #efe2cf; padding: 20px 16px; border-radius: 60px; border: 4px solid #ab8e64;
+            box-shadow: inset 0 2px 12px white, 0 8px 0 #6b4f2c; margin: 12px 0;
+        }
+        .equation { font-size: clamp(2rem, 9vw, 3.2rem); font-weight: 800; text-align: center; color: #1e3a2e; word-break: break-word; }
+        .input-area { display: flex; gap: 12px; margin: 10px 0; flex-wrap: wrap; }
+        #answerInput {
+            flex: 3; min-width: 120px; padding: 14px 18px; font-size: 1.6rem; text-align: center;
+            border: 3px solid #7b5d3c; border-radius: 60px; background: white; font-weight: bold;
+        }
+        #submitBtn, #continueBtn {
+            background: #d9a13b; border: none; border-radius: 60px; padding: 12px 24px;
+            font-weight: bold; font-size: 1.2rem; border-bottom: 4px solid #8b5e1a; cursor: pointer;
+            flex: 1; min-width: 100px;
+        }
+        #continueBtn { background: #6f8f6f; border-bottom-color: #3a5e3a; display: none; }
+        .feedback { background: #e9dbc9; padding: 10px; border-radius: 40px; text-align: center; margin: 10px 0; font-weight: 600; }
+        .topic-checkbox-group { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin: 12px 0; }
+        .topic-checkbox { display: flex; align-items: center; gap: 6px; }
+        .achievement-badge {
+            background: #2e5e2e; color: gold; border-radius: 40px; padding: 6px 12px;
+            font-size: 0.8rem; display: inline-block; margin: 4px;
+        }
+        .countdown-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 200;
+        }
+        .countdown-number { font-size: 7rem; color: gold; font-weight: bold; text-shadow: 2px 2px 0 black; }
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 300;
+        }
+        .modal-content { background: #fbf5e3; padding: 24px; border-radius: 48px; text-align: center; max-width: 90%; }
+        .action-row { display: flex; justify-content: center; }
+        .warning-text { color: #b33; margin: 8px 0; font-weight: bold; }
+        .table-container {
+            max-height: 200px; overflow-y: auto; background: #fcf9f0; border-radius: 20px;
+            border: 2px solid #7b5d3c; margin: 12px 0;
+        }
+        .history-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .history-table th, .history-table td { padding: 8px; border-bottom: 1px solid #ccc; text-align: center; }
+        .history-table th { background: #e9dbbc; position: sticky; top: 0; }
+        .question-editor-item {
+            display: flex; align-items: center; gap: 8px; margin: 8px 0; background: #fcf9f0;
+            padding: 8px; border-radius: 20px; flex-wrap: wrap;
+        }
+        .question-editor-item span { flex: 1; min-width: 120px; }
+        .small-btn {
+            background: #d9a13b; border: none; border-radius: 30px; padding: 4px 12px;
+            font-weight: bold; border-bottom: 3px solid #8b5e1a; cursor: pointer; font-size: 0.8rem;
+        }
+        .small-btn.delete { background: #b33; border-bottom-color: #622; color: white; }
+        .section-divider { border-top: 2px solid #b99b6b; margin: 20px 0; }
+        .topic-manager-item {
+            display: flex; align-items: center; gap: 10px; margin: 8px 0; background: #fcf9f0;
+            padding: 6px 10px; border-radius: 25px; flex-wrap: wrap;
+        }
+        .topic-manager-item input { flex: 1; min-width: 100px; margin-right: 5px; }
+    </style>
+</head>
+<body>
+<div class="game-wrapper">
+    <!-- AUTH SCREEN -->
+    <div id="authScreen" class="screen active">
+        <div class="menu-container">
+            <div class="game-title">⚡ MATH QUEST ⚡</div>
+            <div class="subtitle">Sign in to continue your adventure</div>
+            <div style="display: flex; flex-direction: column; gap: 14px; width: min(300px, 85%);">
+                <input type="email" id="authEmail" placeholder="Email" style="padding:12px; border-radius:20px; border:2px solid #7b5d3c;">
+                <input type="password" id="authPassword" placeholder="Password" style="padding:12px; border-radius:20px; border:2px solid #7b5d3c;">
+                <button class="menu-btn" id="signInBtn"><i class="fas fa-sign-in-alt"></i> Sign In</button>
+                <button class="menu-btn" id="signUpBtn"><i class="fas fa-user-plus"></i> Sign Up</button>
+            </div>
+            <p id="authError" style="color:#b33; margin-top:10px;"></p>
+        </div>
+    </div>
+
+    <!-- MAIN MENU -->
+    <div id="menuScreen" class="screen">
+        <div class="menu-container">
+            <div class="game-title">⚡ MATH QUEST ⚡</div>
+            <div class="subtitle">Legendary Trophy Hunt</div>
+            <div class="menu-buttons">
+                <button class="menu-btn" id="playBtn"><i class="fas fa-play"></i> Play</button>
+                <button class="menu-btn" id="profileMenuBtn"><i class="fas fa-user-circle"></i> Profile</button>
+                <button class="menu-btn" id="settingsMenuBtn"><i class="fas fa-cog"></i> Settings</button>
+                <button class="menu-btn" id="achievementsBtn"><i class="fas fa-medal"></i> Achievements</button>
+                <button class="menu-btn" id="instructionsMenuBtn"><i class="fas fa-book-open"></i> Instructions</button>
+                <button class="menu-btn" id="teacherMenuBtn"><i class="fas fa-chalkboard-user"></i> Teacher Panel</button>
+                <button class="menu-btn back-btn" id="signOutBtn"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div id="profileScreen" class="screen">
+        <div class="content-panel">
+            <div class="panel-title"><i class="fas fa-user-edit"></i> Hero Profile</div>
+            <div id="profileMenuButtons" style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+                <button class="menu-btn" id="createProfileBtn"><i class="fas fa-user-plus"></i> Create New Profile</button>
+                <button class="menu-btn" id="myProfileBtn"><i class="fas fa-id-card"></i> My Own Profile</button>
+                <button class="menu-btn back-btn" id="backFromProfileBtn">Back</button>
+            </div>
+            <div id="createProfilePanel" style="display: none;">
+                <div class="input-group"><label>Name</label><input type="text" id="createProfileName" maxlength="20" value="Hero"></div>
+                <div class="input-group"><label>Section</label><input type="text" id="createProfileSection" placeholder="SBIT-1D"></div>
+                <div class="input-group"><label>Avatar</label>
+                    <select id="createProfileAvatar">
+                        <option>🧙</option><option>😊</option><option>🦸</option><option>🐉</option><option>🌟</option>
+                        <option>🧝</option><option>🦊</option><option>🐼</option><option>🧞</option><option>👑</option>
+                    </select>
+                </div>
+                <button class="menu-btn" id="saveCreateProfileBtn">Save</button>
+                <button class="menu-btn back-btn" id="backFromCreateProfileBtn">Back</button>
+            </div>
+            <div id="myProfilePanel" style="display: none;">
+                <div class="input-group"><label>Name</label><input type="text" id="myProfileName" maxlength="20"></div>
+                <div class="input-group"><label>Section</label><input type="text" id="myProfileSection" placeholder="SBIT-1D"></div>
+                <div class="input-group"><label>Avatar</label>
+                    <select id="myProfileAvatar">
+                        <option>🧙</option><option>😊</option><option>🦸</option><option>🐉</option><option>🌟</option>
+                        <option>🧝</option><option>🦊</option><option>🐼</option><option>🧞</option><option>👑</option>
+                    </select>
+                </div>
+                <button class="menu-btn" id="saveMyProfileBtn">Save Changes</button>
+                <h3 style="margin-top:20px;"><i class="fas fa-chart-line"></i> My Progress</h3>
+                <div class="table-container" id="myHistoryTableContainer">
+                    <table class="history-table">
+                        <thead><tr><th>Date</th><th>Mode</th><th>Topics</th><th>Score</th><th>Result</th><th>XP</th></tr></thead>
+                        <tbody id="myHistoryTableBody"></tbody>
+                    </table>
+                </div>
+                <button class="menu-btn back-btn" id="backFromMyProfileBtn">Back</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="settingsScreen" class="screen">
+        <div class="content-panel">
+            <div class="panel-title">⚙️ Settings</div>
+            <div class="input-group"><label>Timer</label><select id="timerToggleSetting"><option value="on">On</option><option value="off">Off</option></select></div>
+            <div class="input-group"><label>Sound FX</label><select id="soundToggle"><option value="on">On</option><option value="off">Off</option></select></div>
+            <button class="menu-btn" id="saveSettingsBtn">Save</button>
+            <button class="menu-btn back-btn" id="backFromSettingsBtn">Back</button>
+        </div>
+    </div>
+
+    <!-- ACHIEVEMENTS -->
+    <div id="achievementsScreen" class="screen">
+        <div class="content-panel">
+            <div class="panel-title">🏅 Legendary Feats</div>
+            <div id="achievementsList" style="display:flex; flex-wrap:wrap; justify-content:center;"></div>
+            <button class="menu-btn back-btn" id="backFromAchievementsBtn">Back</button>
+        </div>
+    </div>
+
+    <!-- INSTRUCTIONS -->
+    <div id="instructionsScreen" class="screen">
+        <div class="content-panel">
+            <div class="panel-title">📖 How to Play</div>
+            <p>✔ Answer 10 questions correctly to win. Earn XP & level up!</p>
+            <p>✔ Power-ups drop after correct answers: +time, extra life, hint.</p>
+            <p>✔ Adaptive difficulty: streak = harder, mistakes = easier.</p>
+            <p>✔ Earn trophies by winning with 3, 5, or 8 topics.</p>
+            <p>✔ Teacher can adjust timer and add custom questions.</p>
+            <button class="menu-btn back-btn" id="backFromInstructionsBtn">Back</button>
+        </div>
+    </div>
+
+    <!-- TEACHER PANEL -->
+    <div id="teacherScreen" class="screen">
+        <div class="content-panel">
+            <div class="panel-title"><i class="fas fa-chalkboard-teacher"></i> Teacher Panel</div>
+            <h3>📊 Class Progress</h3>
+            <div class="table-container" id="historyTableContainer">
+                <table class="history-table">
+                    <thead><tr><th>Name</th><th>Section</th><th>Date</th><th>Mode</th><th>Topics</th><th>Score</th><th>Result</th><th>XP</th></tr></thead>
+                    <tbody id="historyTableBody"></tbody>
+                </table>
+            </div>
+            <button class="menu-btn small-btn" id="clearHistoryBtn" style="margin-top:8px;">Clear History</button>
+
+            <div class="section-divider"></div>
+            <h3>🎯 Default Topics (for new games)</h3>
+            <div id="defaultTopicsContainer" class="topic-checkbox-group"></div>
+            <button class="menu-btn small-btn" id="saveDefaultTopicsBtn">Save Defaults</button>
+
+            <div class="section-divider"></div>
+            <h3>🔧 Manage Topics</h3>
+            <div id="topicManagerList"></div>
+            <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
+                <input type="text" id="newTopicKey" placeholder="Topic ID" style="flex:1; min-width:120px;">
+                <input type="text" id="newTopicName" placeholder="Display name" style="flex:1; min-width:120px;">
+                <button class="menu-btn small-btn" id="addTopicBtn">Add Topic</button>
+            </div>
+            <button class="menu-btn small-btn" id="resetTopicsBtn" style="margin-top:6px;">Reset to Defaults</button>
+
+            <div class="section-divider"></div>
+            <h3>❓ Custom Questions</h3>
+            <div class="input-group">
+                <label>Select Topic</label>
+                <select id="editorTopicSelect"></select>
+            </div>
+            <div id="customQuestionsList"></div>
+            <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
+                <input type="text" id="newQuestionText" placeholder="Question" style="flex:2; min-width:120px;">
+                <input type="text" id="newQuestionAnswer" placeholder="Answer (number or fraction)" style="flex:1; min-width:80px;">
+                <button class="menu-btn small-btn" id="addQuestionBtn">Add</button>
+            </div>
+
+            <div class="section-divider"></div>
+            <h3>⏱️ Timer Settings</h3>
+            <div class="input-group">
+                <label>Enable Timer</label>
+                <select id="teacherTimerEnabled">
+                    <option value="true">On</option>
+                    <option value="false">Off</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Default Seconds</label>
+                <input type="number" id="teacherTimerSeconds" min="5" max="300">
+            </div>
+            <button class="menu-btn small-btn" id="saveTimerSettingsBtn">Save Timer</button>
+
+            <div class="section-divider"></div>
+            <h3>🔒 Change Teacher Password</h3>
+            <div class="input-group"><label>Current Password</label><input type="password" id="currentPwd"></div>
+            <div class="input-group"><label>New Password</label><input type="password" id="newPwd"></div>
+            <div class="input-group"><label>Repeat New Password</label><input type="password" id="repeatNewPwd"></div>
+            <button class="menu-btn small-btn" id="changePwdBtn">Update Password</button>
+
+            <button class="menu-btn back-btn" id="backFromTeacherBtn" style="margin-top:20px;">Back</button>
+        </div>
+    </div>
+
+    <!-- SETUP -->
+    <div id="setupScreen" class="screen">
+        <div class="content-panel">
+            <div class="panel-title">⚔️ New Adventure</div>
+            <div class="input-group"><label>Game Mode</label>
+                <select id="gameModeSelect">
+                    <option value="standard">Standard (10 questions)</option>
+                    <option value="endless">Endless Mode</option>
+                    <option value="timeattack">Time Attack (60s)</option>
+                </select>
+            </div>
+            <div class="input-group"><label>Difficulty</label>
+                <select id="setupDifficulty">
+                    <option value="easy">Easy</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </div>
+            <div class="input-group"><label>Select Topics (min 3)</label></div>
+            <div id="topicCheckboxContainer" class="topic-checkbox-group"></div>
+            <div id="topicWarning" class="warning-text"></div>
+            <button class="menu-btn" id="startGameBtn">▶ Start Quest</button>
+            <button class="menu-btn back-btn" id="backFromSetupBtn">Back</button>
+        </div>
+    </div>
+
+    <!-- GAME -->
+    <div id="gameScreen" class="screen">
+        <div class="game-header">
+            <h2><i class="fas fa-dragon"></i> Math Hunt</h2>
+            <button class="menu-icon-btn" id="menuFromGameBtn"><i class="fas fa-door-open"></i></button>
+        </div>
+        <div class="stat-row">
+            <span><i class="fas fa-star"></i> Lv.<span id="playerLevel">1</span></span>
+            <span><i class="fas fa-trophy"></i> XP:<span id="playerXP">0</span>/<span id="nextXP">100</span></span>
+            <span><i class="fas fa-fire"></i> Best Streak:<span id="bestStreakDisplay">0</span></span>
+        </div>
+        <div class="trophy-container">
+            <span class="trophy" id="trophy1">🏆</span>
+            <span class="trophy" id="trophy2">🏆</span>
+            <span class="trophy" id="trophy3">🏆</span>
+        </div>
+        <div class="lives-container" id="livesContainer"></div>
+        <div class="powerup-bar">
+            <button class="powerup-btn" id="powerupTime"><i class="fas fa-hourglass-start"></i> <span id="timePowerCount">0</span></button>
+            <button class="powerup-btn" id="powerupLife"><i class="fas fa-heart"></i> <span id="lifePowerCount">0</span></button>
+            <button class="powerup-btn" id="powerupHint"><i class="fas fa-lightbulb"></i> <span id="hintPowerCount">0</span></button>
+        </div>
+        <div class="character-area">
+            <span id="charAvatar" class="avatar-icon">🧙</span>
+            <div id="speechBubble" class="speech">Solve to earn glory!</div>
+        </div>
+        <div class="topic-bar" id="activeTopicsBar"></div>
+        <div class="map-area">
+            <div class="path-track" id="mapTrack"></div>
+            <div class="progress-text"><i class="fas fa-flag-checkered"></i> <span id="progressText">0/10</span> correct</div>
+        </div>
+        <div class="timer-area"><i class="fas fa-hourglass-half"></i><span class="timer-display" id="timerDisplay">40s</span></div>
+        <div class="question-box"><div class="equation" id="questionText">48 + 27 = ?</div></div>
+        <div class="input-area">
+            <input type="text" id="answerInput" placeholder="Your answer" inputmode="decimal" autocomplete="off">
+            <button id="submitBtn">Submit</button>
+            <button id="continueBtn">Continue</button>
+        </div>
+        <div class="feedback" id="feedbackMsg">⚡ Ready, hero!</div>
+    </div>
+</div>
+
+<div id="gameEndModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <h2 id="gameEndTitle">Game Over</h2>
+        <p id="gameEndMessage"></p>
+        <button class="menu-btn" id="gameEndCloseBtn">Main Menu</button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function() {
+    // --- CONFIGURATION ---
+    const SUPABASE_URL = 'https://retwqpcvjomeyfefuvdw.supabase.co'; 
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJldHdxcGN2am9tZXlmZWZ1dmR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4NzI1MDcsImV4cCI6MjA5MzQ0ODUwN30.d7XfMEsMmIXO4o7ux_h558PqLje1EBJWcEbHdBsfa44';             
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // --- SCREEN MANAGER ---
+    const screens = {
+        auth: document.getElementById('authScreen'),
+        menu: document.getElementById('menuScreen'),
+        profile: document.getElementById('profileScreen'),
+        settings: document.getElementById('settingsScreen'),
+        achievementsScreen: document.getElementById('achievementsScreen'),
+        instructions: document.getElementById('instructionsScreen'),
+        teacher: document.getElementById('teacherScreen'),
+        setup: document.getElementById('setupScreen'),
+        game: document.getElementById('gameScreen')
+    };
+    function showScreen(name) {
+        Object.values(screens).forEach(s => s.classList.remove('active'));
+        if (screens[name]) screens[name].classList.add('active');
+        if (name === 'setup') renderTopicCheckboxes();
+        if (name === 'achievementsScreen') renderAchievements();
+        if (name === 'teacher') renderTeacherPanel();
+        if (name === 'profile') resetProfileView();
+        if (name === 'settings') loadSettingsIntoForm();
+    }
+
+    // --- DATA STATE ---
+    let student = { name: 'Hero', section: '', avatar: '🧙' };
+    let trophies = { trophy1: false, trophy2: false, trophy3: false };
+    let stats = { xp: 0, level: 1, totalCorrect: 0, totalGames: 0, bestStreak: 0, achievements: {} };
+    let inventory = { timeBoost: 0, extraLife: 0, hint: 0 };
+    let currentUser = null;
+
+    let currentGame = {
+        mode: 'standard', difficultyBase: 'medium', selectedTopics: [],
+        correctCount: 0, streak: 0, lives: 3, gameActive: true, adaptiveFactor: 0
+    };
+    let currentQuestion = { text: '', answer: null, hintMsg: '', isFraction: false };
+    let userAnswered = false, timerEnabled = true, soundEnabled = true;
+    let timerSeconds = 40, timerInterval = null, timeLeft = 40, timerActive = false;
+
+    let allTopics = [];
+    let topicNames = {};
+    let gameHistory = []; // local cache, used for display only
+    let defaultTopics = [];
+    let customQuestions = {};
+    let teacherPassword = 'mathquest2024';
+
+    // DOM game elements
+    const answerInput = document.getElementById('answerInput');
+    const submitBtn = document.getElementById('submitBtn');
+    const continueBtn = document.getElementById('continueBtn');
+    const feedbackMsg = document.getElementById('feedbackMsg');
+    const timerDisplay = document.getElementById('timerDisplay');
+    const livesContainer = document.getElementById('livesContainer');
+    const activeTopicsBar = document.getElementById('activeTopicsBar');
+    const progressText = document.getElementById('progressText');
+    const mapTrack = document.getElementById('mapTrack');
+    let stepElements = [];
+    let speechTimeout = null;
+
+    // --- AUTH ---
+    async function checkUser() {
+        const { data: { user } } = await supabase.auth.getUser();
+        currentUser = user;
+        if (user) {
+            await loadAllData();
+            showScreen('menu');
+        } else {
+            showScreen('auth');
+        }
+    }
+
+    async function signIn(email, password) {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) document.getElementById('authError').innerText = error.message;
+        else {
+            document.getElementById('authError').innerText = '';
+            await checkUser();
+        }
+    }
+
+    async function signUp(email, password) {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) document.getElementById('authError').innerText = error.message;
+        else alert('Sign up successful! You can now sign in.');
+    }
+
+    async function signOut() {
+        await supabase.auth.signOut();
+        currentUser = null;
+        showScreen('auth');
+    }
+
+    // --- SUPABASE DATA LOADING ---
+    async function loadAllData() {
+        if (!currentUser) return;
+        // Profile
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+        if (profile) {
+            student.name = profile.name; student.section = profile.section; student.avatar = profile.avatar;
+            stats.xp = profile.xp; stats.level = profile.level; stats.totalCorrect = profile.total_correct;
+            stats.totalGames = profile.total_games; stats.bestStreak = profile.best_streak;
+            trophies = profile.trophies; inventory = profile.inventory; stats.achievements = profile.achievements;
+        }
+        // Topics
+        const { data: topicsData } = await supabase.from('topics').select('*');
+        allTopics = topicsData.map(t => t.key);
+        topicNames = {};
+        topicsData.forEach(t => { topicNames[t.key] = t.name; });
+        // Default topics
+        const { data: defaults } = await supabase.from('default_topics').select('topic_key');
+        defaultTopics = defaults.map(d => d.topic_key);
+        // Custom questions
+        const { data: custom } = await supabase.from('custom_questions').select('*');
+        customQuestions = {};
+        custom.forEach(q => {
+            if (!customQuestions[q.topic]) customQuestions[q.topic] = [];
+            customQuestions[q.topic].push({ text: q.question_text, answer: q.answer });
+        });
+        // Teacher password
+        const { data: pwData } = await supabase.from('teacher_settings').select('value').eq('key', 'teacher_password').single();
+        if (pwData) teacherPassword = pwData.value;
+        // Timer settings (loaded on game start for current game)
+        updateUIElements();
+        renderAchievements();
+    }
+
+    async function saveProfile() {
+        if (!currentUser) return;
+        await supabase.from('profiles').upsert({
+            id: currentUser.id,
+            name: student.name, section: student.section, avatar: student.avatar,
+            xp: stats.xp, level: stats.level, total_correct: stats.totalCorrect,
+            total_games: stats.totalGames, best_streak: stats.bestStreak,
+            trophies, inventory, achievements: stats.achievements
+        });
+    }
+
+    async function addGameHistory(entry) {
+        if (!currentUser) return;
+        await supabase.from('game_history').insert({ ...entry, user_id: currentUser.id });
+    }
+
+    // --- UI UPDATES ---
+    function updateUIElements() {
+        document.getElementById('playerLevel').innerText = stats.level;
+        document.getElementById('playerXP').innerText = stats.xp;
+        document.getElementById('nextXP').innerText = stats.level * 100;
+        document.getElementById('bestStreakDisplay').innerText = stats.bestStreak;
+        document.getElementById('timePowerCount').innerText = inventory.timeBoost;
+        document.getElementById('lifePowerCount').innerText = inventory.extraLife;
+        document.getElementById('hintPowerCount').innerText = inventory.hint;
+        document.getElementById('charAvatar').innerText = student.avatar;
+        updateTrophyDisplay();
+    }
+    function updateTrophyDisplay() {
+        document.getElementById('trophy1').classList.toggle('earned', trophies.trophy1);
+        document.getElementById('trophy2').classList.toggle('earned', trophies.trophy2);
+        document.getElementById('trophy3').classList.toggle('earned', trophies.trophy3);
+    }
+
+    // --- AUDIO ---
+    let audioCtx = null;
+    function initAudio() {
+        if (!audioCtx && window.AudioContext) {
+            audioCtx = new AudioContext();
+            document.addEventListener('click', () => audioCtx.resume(), { once: true });
+        }
+    }
+    function playSound(type) {
+        if (!soundEnabled || !audioCtx) return;
+        try {
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            let freq = 440, dur = 0.12;
+            if (type === 'correct') { freq = 880; dur = 0.2; } else if (type === 'incorrect') { freq = 300; dur = 0.3; } else if (type === 'win') { freq = 1200; dur = 0.5; } else if (type === 'powerup') { freq = 660; dur = 0.2; } else if (type === 'click') { freq = 523; dur = 0.08; }
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + dur);
+            osc.start(); osc.stop(now + dur);
+        } catch(e) {}
+    }
+
+    // --- ACHIEVEMENTS ---
+    const achievementsList = [
+        { id: 'streak5', name: 'Fire Streak', cond: () => currentGame.streak >= 5 },
+        { id: 'streak10', name: 'Legend Streak', cond: () => currentGame.streak >= 10 },
+        { id: 'flawless', name: 'Flawless Victory', cond: () => currentGame.lives === 3 && currentGame.correctCount >= 10 },
+        { id: 'speedrun', name: 'Speedster', cond: () => currentGame.mode === 'timeattack' && currentGame.correctCount >= 8 },
+        { id: 'algebra10', name: 'Math Sage', cond: () => (stats.totalCorrect || 0) >= 10 },
+        { id: 'trophyHunter', name: 'Trophy Master', cond: () => trophies.trophy1 && trophies.trophy2 && trophies.trophy3 },
+        { id: 'endlessChamp', name: 'Endless Hero', cond: () => currentGame.mode === 'endless' && currentGame.correctCount >= 20 }
+    ];
+    function checkAchievements() {
+        let changed = false;
+        achievementsList.forEach(ach => {
+            if (!stats.achievements[ach.id] && ach.cond()) {
+                stats.achievements[ach.id] = true;
+                changed = true;
+                setSpeech(`${ach.name} unlocked!`);
+                playSound('win');
+            }
+        });
+        if (changed) { saveProfile(); renderAchievements(); }
+    }
+    function renderAchievements() {
+        const container = document.getElementById('achievementsList');
+        if (!container) return;
+        container.innerHTML = '';
+        achievementsList.forEach(ach => {
+            const div = document.createElement('div'); div.className = 'achievement-badge';
+            div.innerHTML = `${stats.achievements[ach.id] ? '✅' : '🔒'} ${ach.name}`;
+            container.appendChild(div);
+        });
+    }
+
+    // --- POWER-UPS ---
+    function dropPowerup() {
+        if (!currentGame.gameActive) return;
+        const r = Math.random();
+        if (r < 0.25) {
+            if (r < 0.1) inventory.extraLife++;
+            else if (r < 0.18) inventory.timeBoost++;
+            else inventory.hint++;
+            updateUIElements();
+            setSpeech("✨ Power-up dropped!");
+            playSound('powerup');
+        }
+    }
+    function useTimeBoost() {
+        if (inventory.timeBoost <= 0) return;
+        inventory.timeBoost--; updateUIElements();
+        if (timerEnabled && timerActive) { timeLeft += 5; timerDisplay.innerText = `${timeLeft}s`; setSpeech("+5 seconds!"); }
+        else setSpeech("Timer not active.");
+        playSound('powerup');
+    }
+    function useExtraLife() {
+        if (inventory.extraLife <= 0 || currentGame.lives >= 3) return;
+        inventory.extraLife--; currentGame.lives = Math.min(3, currentGame.lives + 1);
+        updateLivesDisplay(); updateUIElements();
+        setSpeech("❤️ Life restored!"); playSound('powerup');
+    }
+    function useHint() {
+        if (inventory.hint <= 0) return;
+        inventory.hint--; updateUIElements();
+        setSpeech(`💡 Hint: ${currentQuestion.hintMsg || "Check your calculation!"}`);
+        playSound('click');
+    }
+
+    // --- QUESTION GENERATION ---
+    function gcd(a,b) { return b ? gcd(b, a % b) : a; }
+    const generators = {
+        arithmetic: (diff, factor) => {
+            let max = diff === 'easy' ? 20 : diff === 'medium' ? 40 : 60;
+            max = Math.min(99, max + Math.floor(factor * 10));
+            let a = Math.floor(Math.random() * max) + 1, b = Math.floor(Math.random() * max) + 1;
+            const ops = ['+', '-', '*', '/']; const op = ops[Math.floor(Math.random() * 4)];
+            let ans, text;
+            if (op === '+') { ans = a + b; text = `${a} + ${b}`; }
+            else if (op === '-') { if (a < b)[a, b] = [b, a]; ans = a - b; text = `${a} - ${b}`; }
+            else if (op === '*') { ans = a * b; text = `${a} × ${b}`; }
+            else { b = Math.max(1, b); const q = Math.floor(Math.random() * 12) + 1; a = b * q; ans = q; text = `${a} ÷ ${b}`; }
+            return { text: `${text} = ?`, answer: ans, hint: 'Calculate carefully.' };
+        },
+        fractions: () => {
+            let num = Math.floor(Math.random() * 8) + 2, den = num + Math.floor(Math.random() * 5) + 1;
+            let g = gcd(num, den), simplifiedNum = num / g, simplifiedDen = den / g;
+            let answerStr = simplifiedDen === 1 ? `${simplifiedNum}` : `${simplifiedNum}/${simplifiedDen}`;
+            return { text: `Simplify ${num}/${den}`, answer: answerStr, hint: `Divide by ${g}`, isFraction: true };
+        },
+        algebra: (diff, factor) => {
+            let x = Math.floor(Math.random() * 8) + 2 + Math.floor(factor);
+            let a = Math.floor(Math.random() * 5) + 2, b = Math.floor(Math.random() * 15) + 1;
+            return { text: `Solve: ${a}x + ${b} = ${a*x+b}`, answer: x, hint: `x = (${a*x+b} - ${b})/${a}` };
+        },
+        wordproblems: () => {
+            let items = Math.floor(Math.random() * 6) + 3, price = Math.floor(Math.random() * 20) + 5;
+            return { text: `${items} potions at ${price} gold each?`, answer: items * price, hint: 'Multiply' };
+        },
+        patterns: () => {
+            let start = Math.floor(Math.random() * 10) + 2, step = Math.floor(Math.random() * 5) + 2;
+            return { text: `Next: ${start}, ${start+step}, ${start+2*step}, ?`, answer: start + 3 * step, hint: `Add ${step}` };
+        },
+        geometry: () => {
+            let side = Math.floor(Math.random() * 10) + 3;
+            return { text: `Area of square side ${side}`, answer: side * side, hint: 'side²' };
+        },
+        percentages: () => {
+            let base = Math.floor(Math.random() * 100) + 30, pct = Math.floor(Math.random() * 80) + 10;
+            return { text: `${pct}% of ${base}`, answer: Math.round((pct / 100) * base * 100) / 100, hint: `Multiply by ${pct/100}` };
+        },
+        probability: () => {
+            let total = Math.floor(Math.random() * 8) + 4, good = Math.floor(Math.random() * total) + 1;
+            return { text: `Probability ${good}/${total} as decimal?`, answer: +(good / total).toFixed(2), hint: `${good}/${total}` };
+        }
+    };
+    function getQuestionForTopic(topic) {
+        if (customQuestions[topic] && customQuestions[topic].length > 0) {
+            const pool = customQuestions[topic];
+            const q = pool[Math.floor(Math.random() * pool.length)];
+            return { text: q.text, answer: q.answer, hintMsg: 'Custom question', isFraction: typeof q.answer === 'string' && q.answer.includes('/') };
+        }
+        const gen = generators[topic];
+        if (gen) {
+            const result = gen(currentGame.difficultyBase, currentGame.adaptiveFactor);
+            return { ...result, hintMsg: result.hint || 'Think carefully.' };
+        }
+        return { text: `What is 0 + 0?`, answer: 0, hintMsg: 'No questions defined', isFraction: false };
+    }
+    function generateQuestion() {
+        if (!currentGame.selectedTopics.length) return;
+        const topic = currentGame.selectedTopics[Math.floor(Math.random() * currentGame.selectedTopics.length)];
+        const q = getQuestionForTopic(topic);
+        currentQuestion = { text: q.text, answer: q.answer, hintMsg: q.hintMsg, isFraction: q.isFraction || false };
+        document.getElementById('questionText').innerHTML = currentQuestion.text;
+        answerInput.value = ''; userAnswered = false; submitBtn.disabled = false; submitBtn.style.display = '';
+        continueBtn.style.display = 'none'; stopTimer();
+        if (timerEnabled && currentGame.mode !== 'timeattack') startTimer();
+        if (currentGame.mode === 'timeattack') { if (!timerActive) { timeLeft = timerSeconds; timerDisplay.innerText = `${timeLeft}s`; } startTimer(); }
+        answerInput.focus();
+    }
+    function checkAnswer(userAnswer, correctAnswer, isFraction) {
+        if (isFraction) {
+            const normalize = (str) => {
+                str = String(str).trim();
+                if (str.includes('/')) {
+                    let [n, d] = str.split('/'); n = parseInt(n); d = parseInt(d); if (isNaN(n) || isNaN(d) || d===0) return str;
+                    let g = gcd(Math.abs(n), Math.abs(d)); n /= g; d /= g; if (d < 0) { n = -n; d = -d; }
+                    return d === 1 ? `${n}` : `${n}/${d}`;
+                }
+                let num = parseFloat(str);
+                if (!isNaN(num) && Number.isInteger(num) && !str.includes('.')) return `${num}`;
+                return str;
+            };
+            return normalize(userAnswer) === normalize(String(correctAnswer)) ||
+                   (Math.abs(parseFloat(userAnswer) - parseFloat(String(correctAnswer))) < 0.001);
+        } else {
+            const ans = Number(userAnswer); if (isNaN(ans)) return false;
+            return Math.abs(ans - Number(correctAnswer)) < 0.001;
+        }
+    }
+    function handleCorrect() {
+        currentGame.streak++; currentGame.correctCount++; stats.totalCorrect++;
+        addXP(10); updateStreakRecord(); playSound('correct');
+        setSpeech("✅ Correct! +10 XP"); feedbackMsg.innerHTML = `✅ Correct! Streak: ${currentGame.streak}`;
+        dropPowerup();
+        if (currentGame.mode === 'standard' && currentGame.correctCount >= 10) gameWin();
+        else { updateUI(); generateQuestion(); }
+        checkAchievements(); saveProfile();
+    }
+    function handleIncorrect() {
+        currentGame.lives--; currentGame.streak = 0; playSound('incorrect');
+        let correctDisplay = currentQuestion.isFraction ? String(currentQuestion.answer) : currentQuestion.answer;
+        feedbackMsg.innerHTML = `❌ Wrong. Answer: ${correctDisplay}. Lives: ${currentGame.lives}`;
+        setSpeech(`Oops! It's ${correctDisplay}`); updateLivesDisplay(); updateStreakRecord();
+        if (currentGame.lives <= 0) gameOver();
+        else { userAnswered = true; submitBtn.disabled = true; submitBtn.style.display = 'none'; continueBtn.style.display = 'inline-block'; stopTimer(); }
+        saveProfile();
+    }
+    function addXP(amount) {
+        stats.xp += amount;
+        let needed = stats.level * 100;
+        while (stats.xp >= needed) { stats.xp -= needed; stats.level++; needed = stats.level * 100; playSound('win'); setSpeech(`Level ${stats.level}! Amazing!`); }
+        updateUIElements();
+    }
+    function updateStreakRecord() { if (currentGame.streak > stats.bestStreak) { stats.bestStreak = currentGame.streak; } }
+    function gameWin() {
+        stopTimer(); currentGame.gameActive = false; playSound('win');
+        const topicCnt = currentGame.selectedTopics.length;
+        if (topicCnt === 3 && !trophies.trophy1) trophies.trophy1 = true;
+        if (topicCnt === 5 && !trophies.trophy2) trophies.trophy2 = true;
+        if (topicCnt === 8 && !trophies.trophy3) trophies.trophy3 = true;
+        updateTrophyDisplay(); stats.totalGames++; addXP(50);
+        showEndModal("🏆 Victory!", `You conquered ${topicCnt} topics! +50 XP!`);
+        addGameHistory({ date: new Date().toLocaleString(), mode: currentGame.mode, topics: currentGame.selectedTopics.map(t => topicNames[t]||t).join(', '), score: currentGame.correctCount, result: 'Win', xp: 50 });
+        saveProfile();
+    }
+    function gameOver() {
+        stopTimer(); currentGame.gameActive = false; stats.totalGames++;
+        showEndModal("💀 Defeated", "Try again, hero!");
+        addGameHistory({ date: new Date().toLocaleString(), mode: currentGame.mode, topics: currentGame.selectedTopics.map(t => topicNames[t]||t).join(', '), score: currentGame.correctCount, result: 'Loss', xp: 0 });
+        saveProfile();
+    }
+    function showEndModal(title, msg) {
+        document.getElementById('gameEndTitle').innerHTML = title;
+        document.getElementById('gameEndMessage').innerHTML = msg;
+        document.getElementById('gameEndModal').style.display = 'flex';
+    }
+    function updateUI() {
+        progressText.innerText = currentGame.mode === 'endless' ? `${currentGame.correctCount} correct` : `${currentGame.correctCount}/10`;
+        updateMapProgress();
+    }
+    function updateLivesDisplay() {
+        let html = ''; for (let i=0; i<3; i++) html += `<span class="life-heart ${i>=currentGame.lives?'lost':''}">❤️</span>`;
+        livesContainer.innerHTML = html;
+    }
+    function updateMapProgress() {
+        if (!stepElements.length) renderMapSteps();
+        stepElements.forEach((el, i) => {
+            el.classList.remove('active', 'completed');
+            if (i < currentGame.correctCount) el.classList.add('completed');
+            else if (i === currentGame.correctCount && currentGame.mode !== 'endless') el.classList.add('active');
+        });
+    }
+    function renderMapSteps() {
+        mapTrack.innerHTML = ''; stepElements = [];
+        const total = currentGame.mode === 'endless' ? Math.max(10, currentGame.correctCount + 5) : 10;
+        for (let i=1; i<=total; i++) { const d = document.createElement('div'); d.className='step'; d.innerText=i; mapTrack.appendChild(d); stepElements.push(d); }
+        const trophySpan = document.createElement('span'); trophySpan.innerHTML='🏆'; mapTrack.appendChild(trophySpan);
+        updateMapProgress();
+    }
+    function setSpeech(msg) {
+        const bubble = document.getElementById('speechBubble');
+        bubble.innerHTML = msg; if (speechTimeout) clearTimeout(speechTimeout);
+        speechTimeout = setTimeout(() => { if (bubble.innerHTML === msg) bubble.innerHTML = "🧙 Keep going!"; }, 2500);
+    }
+    function stopTimer() { if (timerInterval) clearInterval(timerInterval); timerInterval = null; timerActive = false; }
+    function startTimer() {
+        if (!timerEnabled) return; stopTimer(); timerActive = true;
+        timerInterval = setInterval(() => {
+            if (!timerActive) return;
+            timeLeft--; if (timerDisplay) timerDisplay.innerText = `${timeLeft}s`;
+            if (timeLeft <= 0) { stopTimer(); if (!userAnswered && currentGame.gameActive) handleIncorrect(); }
+        }, 1000);
+    }
+
+    function renderTopicCheckboxes() {
+        const container = document.getElementById('topicCheckboxContainer');
+        container.innerHTML = '';
+        allTopics.forEach(t => {
+            const checked = defaultTopics.includes(t);
+            const div = document.createElement('div'); div.className = 'topic-checkbox';
+            div.innerHTML = `<input type="checkbox" id="chk_${t}" value="${t}" ${checked?'checked':''}><label for="chk_${t}">${topicNames[t]||t}</label>`;
+            container.appendChild(div);
+        });
+    }
+
+    async function startNewGame() {
+        const mode = document.getElementById('gameModeSelect').value;
+        const diff = document.getElementById('setupDifficulty').value;
+        const selected = []; allTopics.forEach(t => { if (document.getElementById(`chk_${t}`)?.checked) selected.push(t); });
+        if (selected.length < 3) { document.getElementById('topicWarning').innerText = 'Select at least 3 topics!'; return; }
+        document.getElementById('topicWarning').innerText = '';
+        // Fetch timer settings from Supabase
+        const { data: tEn } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_enabled').single();
+        const { data: tSec } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_seconds').single();
+        timerEnabled = tEn ? tEn.value === 'true' : true;
+        timerSeconds = tSec ? parseInt(tSec.value) : 40;
+        if (mode === 'timeattack') timerSeconds = 60; // override for time attack
+        timeLeft = timerSeconds; if (timerDisplay) timerDisplay.innerText = `${timeLeft}s`;
+        currentGame = { mode, difficultyBase: diff, selectedTopics: selected, correctCount:0, streak:0, lives:3, gameActive:true, adaptiveFactor:0 };
+        showScreen('game'); updateLivesDisplay(); updateActiveTopicsBar(); updateUIElements(); renderMapSteps(); updateUI();
+        feedbackMsg.innerHTML = '⚡ Ready, hero!';
+        startCountdown(() => { generateQuestion(); playSound('click'); });
+    }
+
+    function updateActiveTopicsBar() {
+        activeTopicsBar.innerHTML = '';
+        currentGame.selectedTopics.forEach(t => {
+            const span = document.createElement('span'); span.className = 'topic-badge'; span.innerHTML = topicNames[t]||t;
+            activeTopicsBar.appendChild(span);
+        });
+    }
+
+    function startCountdown(cb) {
+        const wrapper = document.querySelector('.game-wrapper');
+        const overlay = document.createElement('div'); overlay.className = 'countdown-overlay';
+        const numDiv = document.createElement('div'); numDiv.className = 'countdown-number';
+        overlay.appendChild(numDiv); wrapper.appendChild(overlay);
+        let count = 3;
+        const interval = setInterval(() => {
+            if (count >= 0) { numDiv.innerHTML = count === 0 ? 'GO!' : count; count--; }
+            else { clearInterval(interval); setTimeout(() => { overlay.remove(); cb(); }, 500); }
+        }, 700);
+    }
+
+    // --- PROFILE MANAGEMENT ---
+    function resetProfileView() {
+        document.getElementById('profileMenuButtons').style.display = 'flex';
+        document.getElementById('createProfilePanel').style.display = 'none';
+        document.getElementById('myProfilePanel').style.display = 'none';
+    }
+    function showCreateProfile() {
+        document.getElementById('profileMenuButtons').style.display = 'none';
+        document.getElementById('createProfilePanel').style.display = 'block';
+        document.getElementById('myProfilePanel').style.display = 'none';
+        document.getElementById('createProfileName').value = student.name || 'Hero';
+        document.getElementById('createProfileSection').value = student.section || '';
+        document.getElementById('createProfileAvatar').value = student.avatar || '🧙';
+    }
+    async function saveCreateProfile() {
+        student.name = document.getElementById('createProfileName').value.trim() || 'Hero';
+        student.section = document.getElementById('createProfileSection').value.trim();
+        student.avatar = document.getElementById('createProfileAvatar').value;
+        await saveProfile(); updateUIElements(); resetProfileView(); alert('Profile created!');
+    }
+    async function showMyProfile() {
+        document.getElementById('profileMenuButtons').style.display = 'none';
+        document.getElementById('createProfilePanel').style.display = 'none';
+        document.getElementById('myProfilePanel').style.display = 'block';
+        document.getElementById('myProfileName').value = student.name;
+        document.getElementById('myProfileSection').value = student.section;
+        document.getElementById('myProfileAvatar').value = student.avatar;
+        await renderMyHistory();
+    }
+    async function saveMyProfile() {
+        student.name = document.getElementById('myProfileName').value.trim() || 'Hero';
+        student.section = document.getElementById('myProfileSection').value.trim();
+        student.avatar = document.getElementById('myProfileAvatar').value;
+        await saveProfile(); updateUIElements(); renderMyHistory(); alert('Profile updated!');
+    }
+    async function renderMyHistory() {
+        const tbody = document.getElementById('myHistoryTableBody');
+        tbody.innerHTML = '';
+        if (!currentUser) return;
+        const { data: history } = await supabase.from('game_history').select('*').eq('user_id', currentUser.id);
+        if (!history.length) { tbody.innerHTML = '<tr><td colspan="6">No game history found.</td></tr>'; return; }
+        history.slice().reverse().forEach(entry => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${entry.date}</td><td>${entry.mode}</td><td>${entry.topics}</td><td>${entry.score}</td><td>${entry.result}</td><td>${entry.xp}</td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // --- TEACHER PANEL ---
+    async function renderTeacherPanel() {
+        if (!currentUser) return;
+        // Class history (all users)
+        const { data: allHistory } = await supabase.from('game_history').select('*');
+        const historyRows = [];
+        for (let row of allHistory) {
+            const { data: prof } = await supabase.from('profiles').select('name, section').eq('id', row.user_id).single();
+            historyRows.push({ ...row, name: prof ? prof.name : 'Unknown', section: prof ? prof.section : '' });
+        }
+        const tbody = document.getElementById('historyTableBody');
+        tbody.innerHTML = '';
+        if (historyRows.length) {
+            historyRows.slice().reverse().forEach(r => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${r.name}</td><td>${r.section}</td><td>${r.date}</td><td>${r.mode}</td><td>${r.topics}</td><td>${r.score}</td><td>${r.result}</td><td>${r.xp}</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+        // Default topics
+        renderDefaultTopics();
+        // Topic manager
+        renderTopicManager();
+        // Custom question editor
+        renderCustomQuestionEditor();
+        // Timer settings load
+        const { data: tEn } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_enabled').single();
+        const { data: tSec } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_seconds').single();
+        document.getElementById('teacherTimerEnabled').value = tEn ? tEn.value : 'true';
+        document.getElementById('teacherTimerSeconds').value = tSec ? tSec.value : '40';
+    }
+
+    async function saveTimerSettings() {
+        const enabled = document.getElementById('teacherTimerEnabled').value;
+        const seconds = document.getElementById('teacherTimerSeconds').value;
+        await supabase.from('teacher_settings').upsert({ key: 'timer_enabled', value: enabled });
+        await supabase.from('teacher_settings').upsert({ key: 'timer_seconds', value: seconds });
+        alert('Timer settings saved!');
+    }
+
+    function renderDefaultTopics() {
+        const container = document.getElementById('defaultTopicsContainer');
+        container.innerHTML = '';
+        allTopics.forEach(t => {
+            const checked = defaultTopics.includes(t);
+            const div = document.createElement('div'); div.className = 'topic-checkbox';
+            div.innerHTML = `<input type="checkbox" class="default-topic-chk" value="${t}" ${checked?'checked':''}><label>${topicNames[t]||t}</label>`;
+            container.appendChild(div);
+        });
+    }
+    async function saveDefaultTopics() {
+        await supabase.from('default_topics').delete().neq('id',0);
+        const checks = document.querySelectorAll('.default-topic-chk:checked');
+        const inserts = Array.from(checks).map(cb => ({ topic_key: cb.value }));
+        if (inserts.length) await supabase.from('default_topics').insert(inserts);
+        await loadAllData(); alert('Default topics saved!');
+    }
+
+    let topicManagerInputHandler = null;
+    function renderTopicManager() {
+        const list = document.getElementById('topicManagerList');
+        if (topicManagerInputHandler) list.removeEventListener('input', topicManagerInputHandler);
+        list.innerHTML = '';
+        allTopics.forEach((key, index) => {
+            const div = document.createElement('div'); div.className = 'topic-manager-item';
+            const nameInput = document.createElement('input'); nameInput.type='text'; nameInput.value = topicNames[key]||key; nameInput.dataset.key = key;
+            const deleteBtn = document.createElement('button'); deleteBtn.className='small-btn delete'; deleteBtn.innerText='✕'; deleteBtn.onclick = () => deleteTopic(key);
+            div.appendChild(document.createTextNode(`${index+1}. `)); div.appendChild(nameInput); div.appendChild(deleteBtn);
+            list.appendChild(div);
+        });
+        topicManagerInputHandler = (e) => {
+            if (e.target.tagName === 'INPUT' && e.target.dataset.key) {
+                const key = e.target.dataset.key; const newName = e.target.value.trim();
+                if (newName) { topicNames[key] = newName; supabase.from('topics').upsert({ key, name: newName }); }
+            }
+        };
+        list.addEventListener('input', topicManagerInputHandler);
+    }
+    async function addNewTopic() {
+        const key = document.getElementById('newTopicKey').value.trim().toLowerCase().replace(/\s+/g, '');
+        const name = document.getElementById('newTopicName').value.trim();
+        if (!key || !name) return alert('Both fields required.');
+        const { error } = await supabase.from('topics').upsert({ key, name });
+        if (error) alert(error.message);
+        else { await loadAllData(); renderTopicManager(); renderDefaultTopics(); renderCustomQuestionEditor(); }
+        document.getElementById('newTopicKey').value = ''; document.getElementById('newTopicName').value = '';
+    }
+    async function deleteTopic(key) {
+        if (!confirm(`Delete topic "${topicNames[key]||key}"?`)) return;
+        await supabase.from('topics').delete().eq('key', key);
+        await supabase.from('default_topics').delete().eq('topic_key', key);
+        await supabase.from('custom_questions').delete().eq('topic', key);
+        await loadAllData(); renderTopicManager(); renderDefaultTopics(); renderCustomQuestionEditor();
+    }
+    async function resetTopics() {
+        if (!confirm('Reset to original 8 topics? Custom topics and questions will be lost.')) return;
+        const defaults = ['arithmetic','fractions','algebra','wordproblems','patterns','geometry','percentages','probability'];
+        const names = ['➕ Arithmetic','🧮 Fractions','📐 Algebra','📝 Word','🔢 Patterns','📏 Geometry','📊 Percent','🎲 Probability'];
+        await supabase.from('topics').delete().neq('key','');
+        for (let i=0; i<defaults.length; i++) await supabase.from('topics').upsert({ key: defaults[i], name: names[i] });
+        await supabase.from('default_topics').delete().neq('id',0);
+        await supabase.from('custom_questions').delete().neq('id',0);
+        await loadAllData(); renderTopicManager(); renderDefaultTopics(); renderCustomQuestionEditor();
+    }
+    function renderCustomQuestionEditor() {
+        const topicSelect = document.getElementById('editorTopicSelect');
+        topicSelect.innerHTML = allTopics.map(t => `<option value="${t}">${topicNames[t]||t}</option>`).join('');
+        topicSelect.onchange = renderCustomQuestionsList;
+        renderCustomQuestionsList();
+    }
+    function renderCustomQuestionsList() {
+        const topic = document.getElementById('editorTopicSelect').value;
+        const listDiv = document.getElementById('customQuestionsList'); listDiv.innerHTML = '';
+        const questions = customQuestions[topic] || [];
+        questions.forEach((q, index) => {
+            const div = document.createElement('div'); div.className = 'question-editor-item';
+            div.innerHTML = `<span>${q.text} = <strong>${q.answer}</strong></span>
+                <button class="small-btn edit-q-btn" data-index="${index}">Edit</button>
+                <button class="small-btn delete delete-q-btn" data-index="${index}">Del</button>`;
+            listDiv.appendChild(div);
+        });
+        listDiv.querySelectorAll('.edit-q-btn').forEach(btn => btn.onclick = () => editCustomQuestion(parseInt(btn.dataset.index)));
+        listDiv.querySelectorAll('.delete-q-btn').forEach(btn => btn.onclick = () => deleteCustomQuestion(parseInt(btn.dataset.index)));
+    }
+    async function addCustomQuestion() {
+        const topic = document.getElementById('editorTopicSelect').value;
+        const text = document.getElementById('newQuestionText').value.trim();
+        const ans = document.getElementById('newQuestionAnswer').value.trim();
+        if (!text || !ans) return alert('Both fields required.');
+        await supabase.from('custom_questions').insert({ topic, question_text: text, answer: ans });
+        await loadAllData(); renderCustomQuestionsList();
+        document.getElementById('newQuestionText').value = ''; document.getElementById('newQuestionAnswer').value = '';
+    }
+    async function editCustomQuestion(index) {
+        const topic = document.getElementById('editorTopicSelect').value;
+        if (!customQuestions[topic]) return;
+        const q = customQuestions[topic][index];
+        const newText = prompt('Edit question text:', q.text); if (newText === null) return;
+        const newAns = prompt('Edit answer:', q.answer); if (newAns === null) return;
+        // We need to update in DB: find by matching text and answer? Better to store id in custom questions.
+        // Simple approach: delete all for topic, reinsert all edited.
+        const updated = [...customQuestions[topic]];
+        updated[index] = { ...q, text: newText.trim(), answer: newAns.trim() };
+        await supabase.from('custom_questions').delete().eq('topic', topic);
+        for (const qu of updated) await supabase.from('custom_questions').insert({ topic, question_text: qu.text, answer: qu.answer });
+        await loadAllData(); renderCustomQuestionsList();
+    }
+    async function deleteCustomQuestion(index) {
+        if (!confirm('Delete this question?')) return;
+        const topic = document.getElementById('editorTopicSelect').value;
+        const { data: questions } = await supabase.from('custom_questions').select('id').eq('topic', topic);
+        if (!questions || index >= questions.length) return;
+        await supabase.from('custom_questions').delete().eq('id', questions[index].id);
+        await loadAllData(); renderCustomQuestionsList();
+    }
+    async function clearHistory() {
+        if (confirm('Delete all game history?')) {
+            await supabase.from('game_history').delete().neq('id', 0);
+            renderTeacherPanel();
+        }
+    }
+    async function changeTeacherPassword() {
+        const curr = document.getElementById('currentPwd').value;
+        const newPwd = document.getElementById('newPwd').value;
+        const repeat = document.getElementById('repeatNewPwd').value;
+        const { data: pw } = await supabase.from('teacher_settings').select('value').eq('key', 'teacher_password').single();
+        if (curr !== pw.value) return alert('Incorrect current password.');
+        if (!newPwd || newPwd !== repeat) return alert('New passwords do not match.');
+        await supabase.from('teacher_settings').upsert({ key: 'teacher_password', value: newPwd });
+        teacherPassword = newPwd; alert('Password updated!');
+    }
+
+    function loadSettingsIntoForm() {
+        document.getElementById('timerToggleSetting').value = timerEnabled ? 'on' : 'off';
+        document.getElementById('soundToggle').value = soundEnabled ? 'on' : 'off';
+    }
+    function saveSettings() {
+        timerEnabled = document.getElementById('timerToggleSetting').value === 'on';
+        soundEnabled = document.getElementById('soundToggle').value === 'on';
+        alert('Settings saved!'); showScreen('menu');
+    }
+
+    // --- EVENT BINDINGS ---
+    function bindEvents() {
+        const $ = (id) => document.getElementById(id);
+        if ($('signInBtn')) $('signInBtn').onclick = () => signIn($('authEmail').value, $('authPassword').value);
+        if ($('signUpBtn')) $('signUpBtn').onclick = () => signUp($('authEmail').value, $('authPassword').value);
+        if ($('signOutBtn')) $('signOutBtn').onclick = signOut;
+        if ($('playBtn')) $('playBtn').onclick = () => showScreen('setup');
+        if ($('profileMenuBtn')) $('profileMenuBtn').onclick = () => showScreen('profile');
+        if ($('settingsMenuBtn')) $('settingsMenuBtn').onclick = () => showScreen('settings');
+        if ($('achievementsBtn')) $('achievementsBtn').onclick = () => { renderAchievements(); showScreen('achievementsScreen'); };
+        if ($('instructionsMenuBtn')) $('instructionsMenuBtn').onclick = () => showScreen('instructions');
+        if ($('teacherMenuBtn')) $('teacherMenuBtn').onclick = async () => {
+            const pwd = prompt('Enter teacher password:');
+            if (pwd === teacherPassword) showScreen('teacher');
+            else if (pwd) alert('Incorrect!');
+        };
+        if ($('backFromProfileBtn')) $('backFromProfileBtn').onclick = () => showScreen('menu');
+        if ($('createProfileBtn')) $('createProfileBtn').onclick = showCreateProfile;
+        if ($('myProfileBtn')) $('myProfileBtn').onclick = showMyProfile;
+        if ($('saveCreateProfileBtn')) $('saveCreateProfileBtn').onclick = saveCreateProfile;
+        if ($('backFromCreateProfileBtn')) $('backFromCreateProfileBtn').onclick = resetProfileView;
+        if ($('saveMyProfileBtn')) $('saveMyProfileBtn').onclick = saveMyProfile;
+        if ($('backFromMyProfileBtn')) $('backFromMyProfileBtn').onclick = resetProfileView;
+        if ($('backFromSettingsBtn')) $('backFromSettingsBtn').onclick = () => showScreen('menu');
+        if ($('saveSettingsBtn')) $('saveSettingsBtn').onclick = saveSettings;
+        if ($('backFromInstructionsBtn')) $('backFromInstructionsBtn').onclick = () => showScreen('menu');
+        if ($('backFromAchievementsBtn')) $('backFromAchievementsBtn').onclick = () => showScreen('menu');
+        if ($('backFromTeacherBtn')) $('backFromTeacherBtn').onclick = () => showScreen('menu');
+        if ($('backFromSetupBtn')) $('backFromSetupBtn').onclick = () => showScreen('menu');
+        if ($('menuFromGameBtn')) $('menuFromGameBtn').onclick = () => { if (confirm('Exit game?')) { stopTimer(); showScreen('menu'); } };
+        if ($('startGameBtn')) $('startGameBtn').onclick = startNewGame;
+        if (submitBtn) submitBtn.onclick = () => {
+            if (userAnswered || !currentGame.gameActive) return;
+            const val = answerInput.value.trim(); if (val === '') return;
+            stopTimer();
+            if (checkAnswer(val, currentQuestion.answer, currentQuestion.isFraction)) handleCorrect(); else handleIncorrect();
+        };
+        if (continueBtn) continueBtn.onclick = () => { if (userAnswered && currentGame.gameActive) generateQuestion(); };
+        if ($('powerupTime')) $('powerupTime').onclick = useTimeBoost;
+        if ($('powerupLife')) $('powerupLife').onclick = useExtraLife;
+        if ($('powerupHint')) $('powerupHint').onclick = useHint;
+        if ($('gameEndCloseBtn')) $('gameEndCloseBtn').onclick = () => { document.getElementById('gameEndModal').style.display = 'none'; showScreen('menu'); };
+        if (answerInput) answerInput.addEventListener('keypress', e => { if (e.key === 'Enter') submitBtn.click(); });
+        if ($('saveDefaultTopicsBtn')) $('saveDefaultTopicsBtn').onclick = saveDefaultTopics;
+        if ($('addQuestionBtn')) $('addQuestionBtn').onclick = addCustomQuestion;
+        if ($('clearHistoryBtn')) $('clearHistoryBtn').onclick = clearHistory;
+        if ($('addTopicBtn')) $('addTopicBtn').onclick = addNewTopic;
+        if ($('resetTopicsBtn')) $('resetTopicsBtn').onclick = resetTopics;
+        if ($('changePwdBtn')) $('changePwdBtn').onclick = changeTeacherPassword;
+        if ($('saveTimerSettingsBtn')) $('saveTimerSettingsBtn').onclick = saveTimerSettings;
+    }
+
+    async function init() {
+        initAudio();
+        bindEvents();
+        await checkUser();
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+})();
+</script>
+</body>
+</html>
+
