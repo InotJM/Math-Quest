@@ -643,58 +643,56 @@
         }
     }
 
-    // --- SUPABASE DATA LOADING ---
+        // --- SUPABASE DATA LOADING ---
     async function loadAllData() {
         if (!currentUser) return;
-    async function loadAllData() {
-    if (!currentUser) return;
 
-    // Profile
-    const { data: profile } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
-    if (profile) {
-        student.username = profile.username || '';
-        student.name = profile.name || 'Hero';
-        student.section = profile.section || '';
-        student.avatar = profile.avatar || '🧙';
-        stats.xp = profile.xp || 0;
-        stats.level = profile.level || 1;
-        stats.totalCorrect = profile.total_correct || 0;
-        stats.totalGames = profile.total_games || 0;
-        stats.bestStreak = profile.best_streak || 0;
-        trophies = profile.trophies || { trophy1: false, trophy2: false, trophy3: false };
-        inventory = profile.inventory || { timeBoost: 0, extraLife: 0, hint: 0 };
-        stats.achievements = profile.achievements || {};
+        // Profile
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+        if (profile) {
+            student.username = profile.username || '';
+            student.name = profile.name || 'Hero';
+            student.section = profile.section || '';
+            student.avatar = profile.avatar || '🧙';
+            stats.xp = profile.xp || 0;
+            stats.level = profile.level || 1;
+            stats.totalCorrect = profile.total_correct || 0;
+            stats.totalGames = profile.total_games || 0;
+            stats.bestStreak = profile.best_streak || 0;
+            trophies = profile.trophies || { trophy1: false, trophy2: false, trophy3: false };
+            inventory = profile.inventory || { timeBoost: 0, extraLife: 0, hint: 0 };
+            stats.achievements = profile.achievements || {};
+        }
+
+        // Topics
+        const { data: topicsData, error: topicsErr } = await supabase.from('topics').select('*');
+        if (topicsErr) console.error('Topics load error:', topicsErr);
+        allTopics = (topicsData || []).map(t => t.key);
+        topicNames = {};
+        (topicsData || []).forEach(t => { topicNames[t.key] = t.name; });
+
+        // Default topics
+        const { data: defaults, error: defErr } = await supabase.from('default_topics').select('topic_key');
+        if (defErr) console.error('Default topics error:', defErr);
+        defaultTopics = (defaults || []).map(d => d.topic_key);
+
+        // Custom questions
+        const { data: custom, error: custErr } = await supabase.from('custom_questions').select('*');
+        if (custErr) console.error('Custom questions error:', custErr);
+        customQuestions = {};
+        (custom || []).forEach(q => {
+            if (!customQuestions[q.topic]) customQuestions[q.topic] = [];
+            customQuestions[q.topic].push({ text: q.question_text, answer: q.answer });
+        });
+
+        // Teacher password
+        const { data: pwData, error: pwErr } = await supabase.from('teacher_settings').select('value').eq('key', 'teacher_password').single();
+        if (pwErr) console.error('Teacher password load error:', pwErr);
+        if (pwData) teacherPassword = pwData.value;
+
+        updateUIElements();
+        renderAchievements();
     }
-
-    // Topics
-    const { data: topicsData, error: topicsErr } = await supabase.from('topics').select('*');
-    if (topicsErr) console.error('Topics load error:', topicsErr);
-    allTopics = (topicsData || []).map(t => t.key);
-    topicNames = {};
-    (topicsData || []).forEach(t => { topicNames[t.key] = t.name; });
-
-    // Default topics
-    const { data: defaults, error: defErr } = await supabase.from('default_topics').select('topic_key');
-    if (defErr) console.error('Default topics error:', defErr);
-    defaultTopics = (defaults || []).map(d => d.topic_key);
-
-    // Custom questions
-    const { data: custom, error: custErr } = await supabase.from('custom_questions').select('*');
-    if (custErr) console.error('Custom questions error:', custErr);
-    customQuestions = {};
-    (custom || []).forEach(q => {
-        if (!customQuestions[q.topic]) customQuestions[q.topic] = [];
-        customQuestions[q.topic].push({ text: q.question_text, answer: q.answer });
-    });
-
-    // Teacher password
-    const { data: pwData, error: pwErr } = await supabase.from('teacher_settings').select('value').eq('key', 'teacher_password').single();
-    if (pwErr) console.error('Teacher password load error:', pwErr);
-    if (pwData) teacherPassword = pwData.value;
-
-    updateUIElements();
-    renderAchievements();
-}
 
     async function saveProfile() {
         if (!currentUser) return;
