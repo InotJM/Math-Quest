@@ -161,6 +161,21 @@
         }
         .topic-manager-item input { flex: 1; min-width: 100px; margin-right: 5px; }
         .auth-toggle { margin-top: 15px; color: #3a2c1b; cursor: pointer; text-decoration: underline; }
+        .password-wrapper {
+            position: relative; width: 100%;
+        }
+        .password-wrapper input {
+            width: 100%; padding-right: 45px;
+        }
+        .toggle-password {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            cursor: pointer; color: #888; font-size: 1.2rem;
+            user-select: none;
+        }
+        .toggle-password.visible { color: #f0b90b; }
+        .form-hint {
+            font-size: 0.75rem; color: #666; margin-top: -10px; text-align: left; padding-left: 8px;
+        }
     </style>
 </head>
 <body>
@@ -171,18 +186,23 @@
             <div class="game-title">⚡ MATH QUEST ⚡</div>
             <div class="subtitle" id="authSubtitle">Sign in to continue your adventure</div>
             <div style="display: flex; flex-direction: column; gap: 14px; width: min(300px, 85%);">
-                <!-- Sign-in fields -->
                 <div id="signInFields">
-                    <input type="text" id="authLogin" placeholder="Email or Username" style="padding:12px; border-radius:20px; border:2px solid #7b5d3c;">
-                    <div style="margin-top:10px;">
+                    <input type="text" id="authLogin" placeholder="Username" style="padding:12px; border-radius:20px; border:2px solid #7b5d3c;">
+                    <div class="password-wrapper" style="margin-top:10px;">
                         <input type="password" id="authPasswordSignIn" placeholder="Password" style="padding:12px; border-radius:20px; border:2px solid #7b5d3c;">
+                        <span class="toggle-password" data-target="authPasswordSignIn"><i class="fas fa-eye"></i></span>
                     </div>
                     <button class="menu-btn" id="signInBtn" style="margin-top:10px;"><i class="fas fa-sign-in-alt"></i> Sign In</button>
                 </div>
-                <!-- Sign-up fields (hidden by default) -->
                 <div id="signUpFields" style="display:none;">
-                    <input type="email" id="authEmailSignUp" placeholder="Email" style="padding:12px; border-radius:20px; border:2px solid #7b5d3c;">
-                    <input type="password" id="authPasswordSignUp" placeholder="Password" style="padding:12px; border-radius:20px; border:2px solid #7b5d3c; margin-top:10px;">
+                    <input type="text" id="signUpFirstName" placeholder="First Name" style="padding:12px; border-radius:20px; border:2px solid #7b5d3c;">
+                    <input type="text" id="signUpSurname" placeholder="Surname" style="padding:12px; border-radius:20px; border:2px solid #7b5d3c; margin-top:10px;">
+                    <input type="text" id="signUpUsername" placeholder="Username (no spaces)" style="padding:12px; border-radius:20px; border:2px solid #7b5d3c; margin-top:10px;">
+                    <div class="form-hint">Only letters, numbers, dots, hyphens, underscores – no spaces, 3-20 chars</div>
+                    <div class="password-wrapper" style="margin-top:10px;">
+                        <input type="password" id="authPasswordSignUp" placeholder="Password" style="padding:12px; border-radius:20px; border:2px solid #7b5d3c;">
+                        <span class="toggle-password" data-target="authPasswordSignUp"><i class="fas fa-eye"></i></span>
+                    </div>
                     <button class="menu-btn" id="signUpBtn" style="margin-top:10px;"><i class="fas fa-user-plus"></i> Sign Up</button>
                 </div>
             </div>
@@ -208,50 +228,57 @@
         </div>
     </div>
 
-    <!-- PROFILE SCREEN -->
+    <!-- PROFILE SCREEN (new design) -->
     <div id="profileScreen" class="screen">
         <div class="content-panel">
             <div class="panel-title"><i class="fas fa-user-edit"></i> Hero Profile</div>
-            <div id="profileMenuButtons" style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
-                <button class="menu-btn" id="createProfileBtn"><i class="fas fa-user-plus"></i> Create New Profile</button>
-                <button class="menu-btn" id="myProfileBtn"><i class="fas fa-id-card"></i> My Own Profile</button>
-                <button class="menu-btn back-btn" id="backFromProfileBtn">Back</button>
-            </div>
-            <div id="createProfilePanel" style="display: none;">
-                <div class="input-group"><label>Name</label><input type="text" id="createProfileName" maxlength="20" value="Hero"></div>
-                <div class="input-group"><label>Section</label><input type="text" id="createProfileSection" placeholder="SBIT-1D"></div>
-                <div class="input-group"><label>Avatar</label>
-                    <select id="createProfileAvatar">
+            <div id="profileMainView">
+                <div class="input-group">
+                    <label>Username</label>
+                    <input type="text" id="profileUsernameDisplay" readonly style="background:#ddd;">
+                </div>
+                <div class="input-group">
+                    <label>Display Name</label>
+                    <input type="text" id="profileDisplayName">
+                </div>
+                <div class="input-group">
+                    <label>Section</label>
+                    <input type="text" id="profileSection" placeholder="Your class or section">
+                </div>
+                <div class="input-group">
+                    <label>Avatar</label>
+                    <select id="profileAvatar">
                         <option>🧙</option><option>😊</option><option>🦸</option><option>🐉</option><option>🌟</option>
                         <option>🧝</option><option>🦊</option><option>🐼</option><option>🧞</option><option>👑</option>
                     </select>
                 </div>
-                <button class="menu-btn" id="saveCreateProfileBtn">Save</button>
-                <button class="menu-btn back-btn" id="backFromCreateProfileBtn">Back</button>
-            </div>
-            <div id="myProfilePanel" style="display: none;">
-                <div class="input-group"><label>Name</label><input type="text" id="myProfileName" maxlength="20"></div>
-                <div class="input-group"><label>Section</label><input type="text" id="myProfileSection" placeholder="SBIT-1D"></div>
-                <div class="input-group"><label>Avatar</label>
-                    <select id="myProfileAvatar">
-                        <option>🧙</option><option>😊</option><option>🦸</option><option>🐉</option><option>🌟</option>
-                        <option>🧝</option><option>🦊</option><option>🐼</option><option>🧞</option><option>👑</option>
-                    </select>
+                <button class="menu-btn" id="saveProfileBtn">Save Changes</button>
+
+                <div class="section-divider"></div>
+                <h3>🔒 Change Password</h3>
+                <div class="input-group">
+                    <label>New Password</label>
+                    <input type="password" id="newProfilePassword">
                 </div>
-                <button class="menu-btn" id="saveMyProfileBtn">Save Changes</button>
+                <div class="input-group">
+                    <label>Confirm New Password</label>
+                    <input type="password" id="confirmProfilePassword">
+                </div>
+                <button class="menu-btn" id="changePasswordBtn">Update Password</button>
+
                 <h3 style="margin-top:20px;"><i class="fas fa-chart-line"></i> My Progress</h3>
-                <div class="table-container" id="myHistoryTableContainer">
+                <div class="table-container">
                     <table class="history-table">
                         <thead><tr><th>Date</th><th>Mode</th><th>Topics</th><th>Score</th><th>Result</th><th>XP</th></tr></thead>
                         <tbody id="myHistoryTableBody"></tbody>
                     </table>
                 </div>
-                <button class="menu-btn back-btn" id="backFromMyProfileBtn">Back</button>
+                <button class="menu-btn back-btn" id="backFromProfileBtn">Back</button>
             </div>
         </div>
     </div>
 
-    <!-- SETTINGS -->
+    <!-- SETTINGS SCREEN -->
     <div id="settingsScreen" class="screen">
         <div class="content-panel">
             <div class="panel-title">⚙️ Settings</div>
@@ -271,7 +298,7 @@
         </div>
     </div>
 
-    <!-- INSTRUCTIONS -->
+    <!-- INSTRUCTIONS SCREEN -->
     <div id="instructionsScreen" class="screen">
         <div class="content-panel">
             <div class="panel-title">📖 How to Play</div>
@@ -280,7 +307,7 @@
             <p>✔ Adaptive difficulty: streak = harder, mistakes = easier.</p>
             <p>✔ Earn trophies by winning with 3, 5, or 8 topics.</p>
             <p>✔ Teacher can adjust timer and add custom questions.</p>
-            <p>✔ Sign in with email or username!</p>
+            <p>✔ Sign in with your unique username!</p>
             <button class="menu-btn back-btn" id="backFromInstructionsBtn">Back</button>
         </div>
     </div>
@@ -435,7 +462,7 @@
     // --- CONFIGURATION ---
     const SUPABASE_URL = 'https://retwqpcvjomeyfefuvdw.supabase.co'; 
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJldHdxcGN2am9tZXlmZWZ1dmR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4NzI1MDcsImV4cCI6MjA5MzQ0ODUwN30.d7XfMEsMmIXO4o7ux_h558PqLje1EBJWcEbHdBsfa44';             
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // --- SCREEN MANAGER ---
     const screens = {
@@ -455,12 +482,12 @@
         if (name === 'setup') renderTopicCheckboxes();
         if (name === 'achievementsScreen') renderAchievements();
         if (name === 'teacher') renderTeacherPanel();
-        if (name === 'profile') resetProfileView();
+        if (name === 'profile') loadProfileData();
         if (name === 'settings') loadSettingsIntoForm();
     }
 
     // --- DATA STATE ---
-    let student = { name: 'Hero', section: '', avatar: '🧙' };
+    let student = { username: '', name: 'Hero', section: '', avatar: '🧙' };
     let trophies = { trophy1: false, trophy2: false, trophy3: false };
     let stats = { xp: 0, level: 1, totalCorrect: 0, totalGames: 0, bestStreak: 0, achievements: {} };
     let inventory = { timeBoost: 0, extraLife: 0, hint: 0 };
@@ -476,7 +503,6 @@
 
     let allTopics = [];
     let topicNames = {};
-    let gameHistory = []; // local cache, used for display only
     let defaultTopics = [];
     let customQuestions = {};
     let teacherPassword = 'mathquest2024';
@@ -495,49 +521,100 @@
     let speechTimeout = null;
 
     // --- AUTH UI TOGGLE ---
-    let authMode = 'signIn'; // or 'signUp'
+    let authMode = 'signIn';
     function setAuthMode(mode) {
         authMode = mode;
         document.getElementById('signInFields').style.display = (mode === 'signIn') ? 'block' : 'none';
         document.getElementById('signUpFields').style.display = (mode === 'signUp') ? 'block' : 'none';
         document.getElementById('toggleAuthMode').innerText = (mode === 'signIn') ? "Don't have an account? Sign Up" : "Already have an account? Sign In";
-        document.getElementById('authSubtitle').innerText = (mode === 'signIn') ? "Sign in to continue your adventure" : "Create a new account";
+        document.getElementById('authSubtitle').innerText = (mode === 'signIn') ? "Sign in with your username" : "Create a new account";
         document.getElementById('authError').innerText = '';
     }
 
-    // --- AUTH FUNCTIONS (supports username or email) ---
+    // --- PASSWORD TOGGLE ---
+    function setupPasswordToggles() {
+        document.querySelectorAll('.toggle-password').forEach(toggle => {
+            toggle.addEventListener('click', function() {
+                const targetId = this.dataset.target;
+                const input = document.getElementById(targetId);
+                if (!input) return;
+                const isPassword = input.type === 'password';
+                input.type = isPassword ? 'text' : 'password';
+                this.classList.toggle('visible', isPassword);
+            });
+        });
+    }
+
+    // --- VALIDATION ---
+    function isValidUsername(username) {
+        const regex = /^[a-zA-Z0-9._-]+$/;
+        return regex.test(username) && username.length >= 3 && username.length <= 20;
+    }
+
+    // --- AUTH FUNCTIONS ---
     async function signIn() {
         const login = document.getElementById('authLogin').value.trim();
         const password = document.getElementById('authPasswordSignIn').value;
-        if (!login || !password) return;
-
-        let email = login;
-        // If the input does NOT contain '@', treat as username
-        if (!login.includes('@')) {
-            // Call Supabase function to get email by username
-            const { data, error } = await supabase.rpc('get_email_by_username', { username_input: login });
-            if (error || !data) {
-                document.getElementById('authError').innerText = 'Username not found.';
-                return;
-            }
-            email = data;
+        if (!login || !password) {
+            document.getElementById('authError').innerText = 'Please fill all fields.';
+            return;
         }
-
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) document.getElementById('authError').innerText = error.message;
-        else {
+        const fakeEmail = login + '@mathquest.internal';
+        const { error } = await supabase.auth.signInWithPassword({ email: fakeEmail, password });
+        if (error) {
+            document.getElementById('authError').innerText = error.message;
+        } else {
             document.getElementById('authError').innerText = '';
             await checkUser();
         }
     }
 
     async function signUp() {
-        const email = document.getElementById('authEmailSignUp').value.trim();
+        const firstName = document.getElementById('signUpFirstName').value.trim();
+        const surname = document.getElementById('signUpSurname').value.trim();
+        const username = document.getElementById('signUpUsername').value.trim();
         const password = document.getElementById('authPasswordSignUp').value;
-        if (!email || !password) return;
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) document.getElementById('authError').innerText = error.message;
-        else alert('Sign up successful! You can now sign in.');
+        const errorDiv = document.getElementById('authError');
+        errorDiv.innerText = '';
+
+        if (!firstName || !surname || !username || !password) {
+            errorDiv.innerText = 'Please fill all fields.';
+            return;
+        }
+        if (!isValidUsername(username)) {
+            errorDiv.innerText = 'Username must be 3-20 characters (letters, numbers, dots, hyphens, underscores only). No spaces.';
+            return;
+        }
+
+        // Check uniqueness
+        const { data: existing } = await supabase.from('profiles').select('username').eq('username', username).maybeSingle();
+        if (existing) {
+            errorDiv.innerText = 'Username already exists. Choose another.';
+            return;
+        }
+
+        const fakeEmail = username + '@mathquest.internal';
+        const { data, error } = await supabase.auth.signUp({ email: fakeEmail, password });
+        if (error) {
+            if (error.message.includes('duplicate')) {
+                errorDiv.innerText = 'Username already taken.';
+            } else {
+                errorDiv.innerText = error.message;
+            }
+            return;
+        }
+
+        if (data.user) {
+            const fullName = firstName + ' ' + surname;
+            const { error: updateError } = await supabase.from('profiles').update({ username, name: fullName }).eq('id', data.user.id);
+            if (updateError) {
+                console.error('Profile update failed:', updateError);
+                errorDiv.innerText = 'Account created but profile update failed. Contact admin.';
+            } else {
+                alert('Account created! You can now sign in.');
+                setAuthMode('signIn');
+            }
+        }
     }
 
     async function signOut() {
@@ -561,30 +638,33 @@
     // --- SUPABASE DATA LOADING ---
     async function loadAllData() {
         if (!currentUser) return;
-        // Profile
         const { data: profile } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
         if (profile) {
-            student.name = profile.name; student.section = profile.section; student.avatar = profile.avatar;
-            stats.xp = profile.xp; stats.level = profile.level; stats.totalCorrect = profile.total_correct;
-            stats.totalGames = profile.total_games; stats.bestStreak = profile.best_streak;
-            trophies = profile.trophies; inventory = profile.inventory; stats.achievements = profile.achievements;
+            student.username = profile.username || '';
+            student.name = profile.name || 'Hero';
+            student.section = profile.section || '';
+            student.avatar = profile.avatar || '🧙';
+            stats.xp = profile.xp || 0;
+            stats.level = profile.level || 1;
+            stats.totalCorrect = profile.total_correct || 0;
+            stats.totalGames = profile.total_games || 0;
+            stats.bestStreak = profile.best_streak || 0;
+            trophies = profile.trophies || { trophy1: false, trophy2: false, trophy3: false };
+            inventory = profile.inventory || { timeBoost: 0, extraLife: 0, hint: 0 };
+            stats.achievements = profile.achievements || {};
         }
-        // Topics
         const { data: topicsData } = await supabase.from('topics').select('*');
         allTopics = topicsData.map(t => t.key);
         topicNames = {};
         topicsData.forEach(t => { topicNames[t.key] = t.name; });
-        // Default topics
         const { data: defaults } = await supabase.from('default_topics').select('topic_key');
         defaultTopics = defaults.map(d => d.topic_key);
-        // Custom questions
         const { data: custom } = await supabase.from('custom_questions').select('*');
         customQuestions = {};
         custom.forEach(q => {
             if (!customQuestions[q.topic]) customQuestions[q.topic] = [];
             customQuestions[q.topic].push({ text: q.question_text, answer: q.answer });
         });
-        // Teacher password
         const { data: pwData } = await supabase.from('teacher_settings').select('value').eq('key', 'teacher_password').single();
         if (pwData) teacherPassword = pwData.value;
         updateUIElements();
@@ -595,16 +675,17 @@
         if (!currentUser) return;
         await supabase.from('profiles').upsert({
             id: currentUser.id,
-            name: student.name, section: student.section, avatar: student.avatar,
-            xp: stats.xp, level: stats.level, total_correct: stats.totalCorrect,
-            total_games: stats.totalGames, best_streak: stats.bestStreak,
-            trophies, inventory, achievements: stats.achievements
+            username: student.username,
+            name: student.name,
+            section: student.section,
+            avatar: student.avatar,
+            xp: stats.xp, level: stats.level,
+            total_correct: stats.totalCorrect,
+            total_games: stats.totalGames,
+            best_streak: stats.bestStreak,
+            trophies, inventory,
+            achievements: stats.achievements
         });
-    }
-
-    async function addGameHistory(entry) {
-        if (!currentUser) return;
-        await supabase.from('game_history').insert({ ...entry, user_id: currentUser.id });
     }
 
     // --- UI UPDATES ---
@@ -848,6 +929,10 @@
         addGameHistory({ date: new Date().toLocaleString(), mode: currentGame.mode, topics: currentGame.selectedTopics.map(t => topicNames[t]||t).join(', '), score: currentGame.correctCount, result: 'Loss', xp: 0 });
         saveProfile();
     }
+    async function addGameHistory(entry) {
+        if (!currentUser) return;
+        await supabase.from('game_history').insert({ ...entry, user_id: currentUser.id });
+    }
     function showEndModal(title, msg) {
         document.getElementById('gameEndTitle').innerHTML = title;
         document.getElementById('gameEndMessage').innerHTML = msg;
@@ -891,6 +976,7 @@
         }, 1000);
     }
 
+    // --- SETUP / TOPICS ---
     function renderTopicCheckboxes() {
         const container = document.getElementById('topicCheckboxContainer');
         container.innerHTML = '';
@@ -901,26 +987,23 @@
             container.appendChild(div);
         });
     }
-
     async function startNewGame() {
         const mode = document.getElementById('gameModeSelect').value;
         const diff = document.getElementById('setupDifficulty').value;
         const selected = []; allTopics.forEach(t => { if (document.getElementById(`chk_${t}`)?.checked) selected.push(t); });
         if (selected.length < 3) { document.getElementById('topicWarning').innerText = 'Select at least 3 topics!'; return; }
         document.getElementById('topicWarning').innerText = '';
-        // Fetch timer settings from Supabase
         const { data: tEn } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_enabled').single();
         const { data: tSec } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_seconds').single();
         timerEnabled = tEn ? tEn.value === 'true' : true;
         timerSeconds = tSec ? parseInt(tSec.value) : 40;
-        if (mode === 'timeattack') timerSeconds = 60; // override for time attack
+        if (mode === 'timeattack') timerSeconds = 60;
         timeLeft = timerSeconds; if (timerDisplay) timerDisplay.innerText = `${timeLeft}s`;
         currentGame = { mode, difficultyBase: diff, selectedTopics: selected, correctCount:0, streak:0, lives:3, gameActive:true, adaptiveFactor:0 };
         showScreen('game'); updateLivesDisplay(); updateActiveTopicsBar(); updateUIElements(); renderMapSteps(); updateUI();
         feedbackMsg.innerHTML = '⚡ Ready, hero!';
         startCountdown(() => { generateQuestion(); playSound('click'); });
     }
-
     function updateActiveTopicsBar() {
         activeTopicsBar.innerHTML = '';
         currentGame.selectedTopics.forEach(t => {
@@ -928,7 +1011,6 @@
             activeTopicsBar.appendChild(span);
         });
     }
-
     function startCountdown(cb) {
         const wrapper = document.querySelector('.game-wrapper');
         const overlay = document.createElement('div'); overlay.className = 'countdown-overlay';
@@ -941,47 +1023,41 @@
         }, 700);
     }
 
-    // --- PROFILE MANAGEMENT (unchanged) ---
-    function resetProfileView() {
-        document.getElementById('profileMenuButtons').style.display = 'flex';
-        document.getElementById('createProfilePanel').style.display = 'none';
-        document.getElementById('myProfilePanel').style.display = 'none';
-    }
-    function showCreateProfile() {
-        document.getElementById('profileMenuButtons').style.display = 'none';
-        document.getElementById('createProfilePanel').style.display = 'block';
-        document.getElementById('myProfilePanel').style.display = 'none';
-        document.getElementById('createProfileName').value = student.name || 'Hero';
-        document.getElementById('createProfileSection').value = student.section || '';
-        document.getElementById('createProfileAvatar').value = student.avatar || '🧙';
-    }
-    async function saveCreateProfile() {
-        student.name = document.getElementById('createProfileName').value.trim() || 'Hero';
-        student.section = document.getElementById('createProfileSection').value.trim();
-        student.avatar = document.getElementById('createProfileAvatar').value;
-        await saveProfile(); updateUIElements(); resetProfileView(); alert('Profile created!');
-    }
-    async function showMyProfile() {
-        document.getElementById('profileMenuButtons').style.display = 'none';
-        document.getElementById('createProfilePanel').style.display = 'none';
-        document.getElementById('myProfilePanel').style.display = 'block';
-        document.getElementById('myProfileName').value = student.name;
-        document.getElementById('myProfileSection').value = student.section;
-        document.getElementById('myProfileAvatar').value = student.avatar;
+    // --- PROFILE FUNCTIONS ---
+    async function loadProfileData() {
+        document.getElementById('profileUsernameDisplay').value = student.username || '';
+        document.getElementById('profileDisplayName').value = student.name || '';
+        document.getElementById('profileSection').value = student.section || '';
+        document.getElementById('profileAvatar').value = student.avatar || '🧙';
         await renderMyHistory();
     }
-    async function saveMyProfile() {
-        student.name = document.getElementById('myProfileName').value.trim() || 'Hero';
-        student.section = document.getElementById('myProfileSection').value.trim();
-        student.avatar = document.getElementById('myProfileAvatar').value;
-        await saveProfile(); updateUIElements(); renderMyHistory(); alert('Profile updated!');
+    async function saveProfileChanges() {
+        student.name = document.getElementById('profileDisplayName').value.trim() || 'Hero';
+        student.section = document.getElementById('profileSection').value.trim();
+        student.avatar = document.getElementById('profileAvatar').value;
+        await saveProfile();
+        updateUIElements();
+        alert('Profile updated!');
+    }
+    async function changePassword() {
+        const newPwd = document.getElementById('newProfilePassword').value;
+        const confirmPwd = document.getElementById('confirmProfilePassword').value;
+        if (!newPwd || !confirmPwd) return alert('Please enter and confirm your new password.');
+        if (newPwd !== confirmPwd) return alert('Passwords do not match.');
+        const { error } = await supabase.auth.updateUser({ password: newPwd });
+        if (error) alert('Password change failed: ' + error.message);
+        else {
+            alert('Password changed!');
+            document.getElementById('newProfilePassword').value = '';
+            document.getElementById('confirmProfilePassword').value = '';
+        }
     }
     async function renderMyHistory() {
         const tbody = document.getElementById('myHistoryTableBody');
         tbody.innerHTML = '';
         if (!currentUser) return;
         const { data: history } = await supabase.from('game_history').select('*').eq('user_id', currentUser.id);
-        if (!history.length) { tbody.innerHTML = '<tr><td colspan="6">No game history found.</td></tr>'; return; }
+        if (!history.length) { tbody.innerHTML = '<tr><td colspan="6">No game history.</td></tr>'; return; }
         history.slice().reverse().forEach(entry => {
             const tr = document.createElement('tr');
             tr.innerHTML = `<td>${entry.date}</td><td>${entry.mode}</td><td>${entry.topics}</td><td>${entry.score}</td><td>${entry.result}</td><td>${entry.xp}</td>`;
@@ -1015,7 +1091,6 @@
         document.getElementById('teacherTimerEnabled').value = tEn ? tEn.value : 'true';
         document.getElementById('teacherTimerSeconds').value = tSec ? tSec.value : '40';
     }
-
     async function saveTimerSettings() {
         const enabled = document.getElementById('teacherTimerEnabled').value;
         const seconds = document.getElementById('teacherTimerSeconds').value;
@@ -1023,7 +1098,6 @@
         await supabase.from('teacher_settings').upsert({ key: 'timer_seconds', value: seconds });
         alert('Timer settings saved!');
     }
-
     function renderDefaultTopics() {
         const container = document.getElementById('defaultTopicsContainer');
         container.innerHTML = '';
@@ -1041,7 +1115,6 @@
         if (inserts.length) await supabase.from('default_topics').insert(inserts);
         await loadAllData(); alert('Default topics saved!');
     }
-
     let topicManagerInputHandler = null;
     function renderTopicManager() {
         const list = document.getElementById('topicManagerList');
@@ -1167,13 +1240,13 @@
     // --- EVENT BINDINGS ---
     function bindEvents() {
         const $ = (id) => document.getElementById(id);
-
-        // Auth mode toggle
+        // Auth
         if ($('toggleAuthMode')) $('toggleAuthMode').onclick = () => setAuthMode(authMode === 'signIn' ? 'signUp' : 'signIn');
         if ($('signInBtn')) $('signInBtn').onclick = signIn;
         if ($('signUpBtn')) $('signUpBtn').onclick = signUp;
         if ($('signOutBtn')) $('signOutBtn').onclick = signOut;
 
+        // Menu
         if ($('playBtn')) $('playBtn').onclick = () => showScreen('setup');
         if ($('profileMenuBtn')) $('profileMenuBtn').onclick = () => showScreen('profile');
         if ($('settingsMenuBtn')) $('settingsMenuBtn').onclick = () => showScreen('settings');
@@ -1184,21 +1257,34 @@
             if (pwd === teacherPassword) showScreen('teacher');
             else if (pwd) alert('Incorrect!');
         };
+
+        // Profile
+        if ($('saveProfileBtn')) $('saveProfileBtn').onclick = saveProfileChanges;
+        if ($('changePasswordBtn')) $('changePasswordBtn').onclick = changePassword;
         if ($('backFromProfileBtn')) $('backFromProfileBtn').onclick = () => showScreen('menu');
-        if ($('createProfileBtn')) $('createProfileBtn').onclick = showCreateProfile;
-        if ($('myProfileBtn')) $('myProfileBtn').onclick = showMyProfile;
-        if ($('saveCreateProfileBtn')) $('saveCreateProfileBtn').onclick = saveCreateProfile;
-        if ($('backFromCreateProfileBtn')) $('backFromCreateProfileBtn').onclick = resetProfileView;
-        if ($('saveMyProfileBtn')) $('saveMyProfileBtn').onclick = saveMyProfile;
-        if ($('backFromMyProfileBtn')) $('backFromMyProfileBtn').onclick = resetProfileView;
+
+        // Settings
         if ($('backFromSettingsBtn')) $('backFromSettingsBtn').onclick = () => showScreen('menu');
         if ($('saveSettingsBtn')) $('saveSettingsBtn').onclick = saveSettings;
-        if ($('backFromInstructionsBtn')) $('backFromInstructionsBtn').onclick = () => showScreen('menu');
+
+        // Achievements / Instructions
         if ($('backFromAchievementsBtn')) $('backFromAchievementsBtn').onclick = () => showScreen('menu');
+        if ($('backFromInstructionsBtn')) $('backFromInstructionsBtn').onclick = () => showScreen('menu');
+
+        // Teacher
         if ($('backFromTeacherBtn')) $('backFromTeacherBtn').onclick = () => showScreen('menu');
+        if ($('saveDefaultTopicsBtn')) $('saveDefaultTopicsBtn').onclick = saveDefaultTopics;
+        if ($('addQuestionBtn')) $('addQuestionBtn').onclick = addCustomQuestion;
+        if ($('clearHistoryBtn')) $('clearHistoryBtn').onclick = clearHistory;
+        if ($('addTopicBtn')) $('addTopicBtn').onclick = addNewTopic;
+        if ($('resetTopicsBtn')) $('resetTopicsBtn').onclick = resetTopics;
+        if ($('changePwdBtn')) $('changePwdBtn').onclick = changeTeacherPassword;
+        if ($('saveTimerSettingsBtn')) $('saveTimerSettingsBtn').onclick = saveTimerSettings;
+
+        // Setup / Game
         if ($('backFromSetupBtn')) $('backFromSetupBtn').onclick = () => showScreen('menu');
-        if ($('menuFromGameBtn')) $('menuFromGameBtn').onclick = () => { if (confirm('Exit game?')) { stopTimer(); showScreen('menu'); } };
         if ($('startGameBtn')) $('startGameBtn').onclick = startNewGame;
+        if ($('menuFromGameBtn')) $('menuFromGameBtn').onclick = () => { if (confirm('Exit game?')) { stopTimer(); showScreen('menu'); } };
         if (submitBtn) submitBtn.onclick = () => {
             if (userAnswered || !currentGame.gameActive) return;
             const val = answerInput.value.trim(); if (val === '') return;
@@ -1211,18 +1297,12 @@
         if ($('powerupHint')) $('powerupHint').onclick = useHint;
         if ($('gameEndCloseBtn')) $('gameEndCloseBtn').onclick = () => { document.getElementById('gameEndModal').style.display = 'none'; showScreen('menu'); };
         if (answerInput) answerInput.addEventListener('keypress', e => { if (e.key === 'Enter') submitBtn.click(); });
-        if ($('saveDefaultTopicsBtn')) $('saveDefaultTopicsBtn').onclick = saveDefaultTopics;
-        if ($('addQuestionBtn')) $('addQuestionBtn').onclick = addCustomQuestion;
-        if ($('clearHistoryBtn')) $('clearHistoryBtn').onclick = clearHistory;
-        if ($('addTopicBtn')) $('addTopicBtn').onclick = addNewTopic;
-        if ($('resetTopicsBtn')) $('resetTopicsBtn').onclick = resetTopics;
-        if ($('changePwdBtn')) $('changePwdBtn').onclick = changeTeacherPassword;
-        if ($('saveTimerSettingsBtn')) $('saveTimerSettingsBtn').onclick = saveTimerSettings;
     }
 
     async function init() {
         initAudio();
         bindEvents();
+        setupPasswordToggles();
         setAuthMode('signIn');
         await checkUser();
     }
