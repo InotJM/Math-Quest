@@ -1267,7 +1267,12 @@
         const $ = (id) => document.getElementById(id);
         // Auth
         if ($('toggleAuthMode')) $('toggleAuthMode').onclick = () => setAuthMode(authMode === 'signIn' ? 'signUp' : 'signIn');
-        if ($('signInBtn')) $('signInBtn').onclick = signIn;
+        const signInBtn = document.getElementById('signInBtn');
+if (signInBtn) {
+  signInBtn.replaceWith(signInBtn.cloneNode(true)); // remove old listeners
+  const newBtn = document.getElementById('signInBtn');
+  newBtn.addEventListener('click', signIn);
+}
         if ($('signUpBtn')) $('signUpBtn').onclick = signUp;
         if ($('signOutBtn')) $('signOutBtn').onclick = signOut;
 
