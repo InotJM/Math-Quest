@@ -660,25 +660,21 @@
         if (!currentUser) return;
 
         // Profile
-const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
-if (profileError) console.error('Profile fetch error:', profileError);
-if (profile) {
-    student.username = profile.username || '';
-    student.name = profile.name || 'Hero';
-    student.section = profile.section || '';
-    student.avatar = profile.avatar || '🧙';
-    stats.xp = profile.xp || 0;
-    stats.level = profile.level || 1;
-    stats.totalCorrect = profile.total_correct || 0;
-    stats.totalGames = profile.total_games || 0;
-    stats.bestStreak = profile.best_streak || 0;
-    trophies = profile.trophies || { trophy1: false, trophy2: false, trophy3: false };
-    inventory = profile.inventory || { timeBoost: 0, extraLife: 0, hint: 0 };
-    stats.achievements = profile.achievements || {};
-} else {
-    console.warn('No profile found for user', currentUser.id);
-    // Optionally create a default profile here
-}
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+        if (profile) {
+            student.username = profile.username || '';
+            student.name = profile.name || 'Hero';
+            student.section = profile.section || '';
+            student.avatar = profile.avatar || '🧙';
+            stats.xp = profile.xp || 0;
+            stats.level = profile.level || 1;
+            stats.totalCorrect = profile.total_correct || 0;
+            stats.totalGames = profile.total_games || 0;
+            stats.bestStreak = profile.best_streak || 0;
+            trophies = profile.trophies || { trophy1: false, trophy2: false, trophy3: false };
+            inventory = profile.inventory || { timeBoost: 0, extraLife: 0, hint: 0 };
+            stats.achievements = profile.achievements || {};
+        }
 
         // Topics
         const { data: topicsData, error: topicsErr } = await supabase.from('topics').select('*');
@@ -1034,15 +1030,15 @@ if (profile) {
         const selected = []; allTopics.forEach(t => { if (document.getElementById(`chk_${t}`)?.checked) selected.push(t); });
         if (selected.length < 3) { document.getElementById('topicWarning').innerText = 'Select at least 3 topics!'; return; }
         document.getElementById('topicWarning').innerText = '';
-        const { data: tEn } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_enabled').maybeSingle();
-        const { data: tSec } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_seconds').maybeSingle();
+        const { data: tEn } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_enabled').single();
+        const { data: tSec } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_seconds').single();
         timerEnabled = tEn ? tEn.value === 'true' : true;
         timerSeconds = tSec ? parseInt(tSec.value) : 40;
         if (mode === 'timeattack') timerSeconds = 60;
         timeLeft = timerSeconds; if (timerDisplay) timerDisplay.innerText = `${timeLeft}s`;
         currentGame = { mode, difficultyBase: diff, selectedTopics: selected, correctCount:0, streak:0, lives:3, gameActive:true, adaptiveFactor:0 };
         showScreen('game'); updateLivesDisplay(); updateActiveTopicsBar(); updateUIElements(); renderMapSteps(); updateUI();
-        feedbackMsg.innerHTML = `⚡ Ready, ${student.name}!`;
+        feedbackMsg.innerHTML = '⚡ Ready, hero!';
         startCountdown(() => { generateQuestion(); playSound('click'); });
     }
     function updateActiveTopicsBar() {
@@ -1073,16 +1069,16 @@ if (profile) {
         await renderMyHistory();
     }
     async function saveProfileChanges() {
-    async function saveProfileChanges() {
-    const newName = document.getElementById('profileDisplayName').value.trim() || 'Hero';
-    const newSection = document.getElementById('profileSection').value.trim();
-    const newAvatar = document.getElementById('profileAvatar').value;
+    student.name = document.getElementById('profileDisplayName').value.trim() || 'Hero';
+    student.section = document.getElementById('profileSection').value.trim();
+    student.avatar = document.getElementById('profileAvatar').value;
 
     const { error } = await supabase.from('profiles').upsert({
         id: currentUser.id,
-        name: newName,
-        section: newSection,
-        avatar: newAvatar,
+        username: student.username,
+        name: student.name,
+        section: student.section,
+        avatar: student.avatar,
         xp: stats.xp,
         level: stats.level,
         total_correct: stats.totalCorrect,
@@ -1091,19 +1087,15 @@ if (profile) {
         trophies: trophies,
         inventory: inventory,
         achievements: stats.achievements
-    });  // username is NOT included – it should never change
+    });
 
     if (error) {
         console.error('Save profile error:', error);
         alert('Failed to save profile: ' + error.message);
     } else {
-        // Update local state immediately
-        student.name = newName;
-        student.section = newSection;
-        student.avatar = newAvatar;
+        // Update UI and reload data to be safe
         updateUIElements();
-        // Reload from DB to double‑check
-        await loadAllData();
+        await loadAllData();  // reload fresh from DB
         alert('Profile updated!');
     }
 }
@@ -1135,7 +1127,7 @@ if (profile) {
         tbody.innerHTML = '';
         if (!currentUser) return;
         const { data: history } = await supabase.from('game_history').select('*').eq('user_id', currentUser.id);
-        if (!history.length) { tbody.innerHTML = '<tr><td colspan="6">No game history.</td></tr>'; return; }
+        if (!history.length) { tbody.innerHTML = '<tr><td colspan="6">No game history. </td></tr>'; return; }
         history.slice().reverse().forEach(entry => {
             const tr = document.createElement('tr');
             tr.innerHTML = `<td>${entry.date}</td><td>${entry.mode}</td><td>${entry.topics}</td><td>${entry.score}</td><td>${entry.result}</td><td>${entry.xp}</td>`;
