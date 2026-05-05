@@ -1118,11 +1118,24 @@
         return alert('New passwords do not match.');
     }
 
-    // Directly update the password – no reauthentication needed because setting is OFF
-    const { error } = await supabase.auth.updateUser({ password: newPwd });
+    // Check password strength: at least 6 chars, must have lowercase, uppercase, digit
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
+    if (!passwordRegex.test(newPwd)) {
+        return alert('Password must be at least 6 characters and contain at least one lowercase letter, one uppercase letter, and one digit.');
+    }
 
-    if (error) {
-        alert('Password change failed: ' + error.message);
+    // Step 1: Reauthenticate with current password
+    const { error: reauthError } = await supabase.auth.reauthenticate({ password: currentPwd });
+    if (reauthError) {
+        console.error('Reauth error details:', reauthError);
+        return alert('Current password is incorrect or reauthentication failed.');
+    }
+
+    // Step 2: Update the password (reauthentication gives a fresh session claim)
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPwd });
+    if (updateError) {
+        console.error('Update error details:', updateError);
+        alert('Password change failed: ' + updateError.message);
     } else {
         alert('Password changed successfully!');
         document.getElementById('currentProfilePassword').value = '';
