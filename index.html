@@ -1118,16 +1118,17 @@
         return alert('New passwords do not match.');
     }
 
-    // Get the fake email from the stored username
-    const username = student.username;
-    if (!username) {
-        return alert('User data missing. Please log out and back in.');
+    // Get the user's email from the currently authenticated session
+    const { data: { user } } = await supabase.auth.getUser();
+    const userEmail = user?.email;
+    if (!userEmail) {
+        console.error('No user email found. User object:', user);
+        return alert('Session error. Please log out and log back in.');
     }
-    const fakeEmail = username + '@mathquest.internal';
 
-    // Attempt to sign in again with the current password
+    // Attempt to sign in again with the current password using the stored email
     const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: fakeEmail,
+        email: userEmail,
         password: currentPwd
     });
 
