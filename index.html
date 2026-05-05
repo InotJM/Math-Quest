@@ -209,7 +209,7 @@
         </div>
     </div>
 
-    <!-- MAIN MENU -->
+    <!-- MAIN MENU (Settings removed) -->
     <div id="menuScreen" class="screen">
         <div class="menu-container">
             <div class="game-title">⚡ MATH QUEST ⚡</div>
@@ -217,7 +217,6 @@
             <div class="menu-buttons">
                 <button class="menu-btn" id="playBtn"><i class="fas fa-play"></i> Play</button>
                 <button class="menu-btn" id="profileMenuBtn"><i class="fas fa-user-circle"></i> Profile</button>
-                <button class="menu-btn" id="settingsMenuBtn"><i class="fas fa-cog"></i> Settings</button>
                 <button class="menu-btn" id="achievementsBtn"><i class="fas fa-medal"></i> Achievements</button>
                 <button class="menu-btn" id="instructionsMenuBtn"><i class="fas fa-book-open"></i> Instructions</button>
                 <button class="menu-btn" id="teacherMenuBtn"><i class="fas fa-chalkboard-user"></i> Teacher Panel</button>
@@ -289,17 +288,6 @@
         </div>
     </div>
 
-    <!-- SETTINGS SCREEN -->
-    <div id="settingsScreen" class="screen">
-        <div class="content-panel">
-            <div class="panel-title">⚙️ Settings</div>
-            <div class="input-group"><label>Timer</label><select id="timerToggleSetting"><option value="on">On</option><option value="off">Off</option></select></div>
-            <div class="input-group"><label>Sound FX</label><select id="soundToggle"><option value="on">On</option><option value="off">Off</option></select></div>
-            <button class="menu-btn" id="saveSettingsBtn">Save</button>
-            <button class="menu-btn back-btn" id="backFromSettingsBtn">Back</button>
-        </div>
-    </div>
-
     <!-- ACHIEVEMENTS SCREEN -->
     <div id="achievementsScreen" class="screen">
         <div class="content-panel">
@@ -323,7 +311,7 @@
         </div>
     </div>
 
-    <!-- TEACHER PANEL (with eye toggles) -->
+    <!-- TEACHER PANEL (added Save button in Manage Topics) -->
     <div id="teacherScreen" class="screen">
         <div class="content-panel">
             <div class="panel-title"><i class="fas fa-chalkboard-teacher"></i> Teacher Panel</div>
@@ -344,6 +332,7 @@
             <div class="section-divider"></div>
             <h3>🔧 Manage Topics</h3>
             <div id="topicManagerList"></div>
+            <button class="menu-btn small-btn" id="saveTopicChangesBtn" style="margin-top:10px;">Save All Changes</button>
             <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
                 <input type="text" id="newTopicKey" placeholder="Topic ID" style="flex:1; min-width:120px;">
                 <input type="text" id="newTopicName" placeholder="Display name" style="flex:1; min-width:120px;">
@@ -498,7 +487,6 @@
         auth: document.getElementById('authScreen'),
         menu: document.getElementById('menuScreen'),
         profile: document.getElementById('profileScreen'),
-        settings: document.getElementById('settingsScreen'),
         achievementsScreen: document.getElementById('achievementsScreen'),
         instructions: document.getElementById('instructionsScreen'),
         teacher: document.getElementById('teacherScreen'),
@@ -512,7 +500,6 @@
         if (name === 'achievementsScreen') renderAchievements();
         if (name === 'teacher') renderTeacherPanel();
         if (name === 'profile') loadProfileData();
-        if (name === 'settings') loadSettingsIntoForm();
     }
 
     // --- DATA STATE ---
@@ -580,7 +567,7 @@
         return regex.test(username) && username.length >= 3 && username.length <= 20;
     }
 
-    // --- AUTH FUNCTIONS (updated clearing fields) ---
+    // --- AUTH FUNCTIONS ---
     async function signIn() {
         const login = document.getElementById('authLogin').value.trim();
         const password = document.getElementById('authPasswordSignIn').value;
@@ -1080,7 +1067,7 @@
         }, 700);
     }
 
-    // --- PROFILE FUNCTIONS (updated changePassword) ---
+    // --- PROFILE FUNCTIONS (fixed password change) ---
     async function loadProfileData() {
         document.getElementById('profileUsernameDisplay').value = student.username || '';
         document.getElementById('profileDisplayName').value = student.name || '';
@@ -1107,17 +1094,19 @@
             return alert('New passwords do not match.');
         }
 
-        // Re-authenticate with current password
-        const { data: reauthData, error: reauthError } = await supabase.auth.reauthenticate({ password: currentPwd });
-        if (reauthError) {
+        // Re-authenticate by signing in with current credentials
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: currentUser.email,
+            password: currentPwd
+        });
+        if (signInError) {
             return alert('Current password is incorrect.');
         }
 
-        // Update password with the obtained nonce
-        const nonce = reauthData.nonce;
-        const { error } = await supabase.auth.updateUser({ password: newPwd, nonce });
-        if (error) {
-            alert('Password change failed: ' + error.message);
+        // Now update the password
+        const { error: updateError } = await supabase.auth.updateUser({ password: newPwd });
+        if (updateError) {
+            alert('Password change failed: ' + updateError.message);
         } else {
             alert('Password changed!');
             document.getElementById('currentProfilePassword').value = '';
@@ -1138,7 +1127,7 @@
         });
     }
 
-    // --- TEACHER PANEL (no [key] in Default Topics / Custom Questions dropdown) ---
+    // --- TEACHER PANEL (added Save All Changes button) ---
     async function renderTeacherPanel() {
         if (!currentUser) return;
         const { data: allHistory } = await supabase.from('game_history').select('*');
@@ -1193,7 +1182,7 @@
         await loadAllData(); alert('Default topics saved!');
     }
 
-    // Topic Manager (shows key and editable name)
+    // Topic Manager (explicit Save, not auto-save)
     let topicManagerInputHandler = null;
     function renderTopicManager() {
         const list = document.getElementById('topicManagerList');
@@ -1210,6 +1199,7 @@
             nameInput.type = 'text';
             nameInput.value = topicNames[key] || key;
             nameInput.dataset.key = key;
+            nameInput.dataset.originalValue = nameInput.value; // store original
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'small-btn delete';
             deleteBtn.innerText = '✕';
@@ -1220,18 +1210,32 @@
             div.appendChild(deleteBtn);
             list.appendChild(div);
         });
-        topicManagerInputHandler = (e) => {
-            if (e.target.tagName === 'INPUT' && e.target.dataset.key) {
-                const key = e.target.dataset.key;
-                const newName = e.target.value.trim();
-                if (newName) {
-                    topicNames[key] = newName;
-                    supabase.from('topics').upsert({ key, name: newName });
-                }
-            }
-        };
-        list.addEventListener('input', topicManagerInputHandler);
+        // No auto-save listener; save will be triggered by the button
     }
+
+    // New function to save all topic display names
+    async function saveTopicChanges() {
+        const inputs = document.querySelectorAll('#topicManagerList input[data-key]');
+        const updates = [];
+        inputs.forEach(input => {
+            const key = input.dataset.key;
+            const newName = input.value.trim();
+            if (newName && newName !== input.dataset.originalValue) {
+                updates.push({ key, name: newName });
+                input.dataset.originalValue = newName; // update original to prevent re-saving unchanged
+            }
+        });
+        if (updates.length === 0) {
+            alert('No changes to save.');
+            return;
+        }
+        for (const up of updates) {
+            await supabase.from('topics').upsert({ key: up.key, name: up.name });
+        }
+        await loadAllData();
+        alert('Topic names updated!');
+    }
+
     async function addNewTopic() {
         const key = document.getElementById('newTopicKey').value.trim().toLowerCase().replace(/\s+/g, '');
         const name = document.getElementById('newTopicName').value.trim();
@@ -1259,7 +1263,7 @@
         await loadAllData(); renderTopicManager(); renderDefaultTopics(); renderCustomQuestionEditor();
     }
 
-    // Custom Questions topic dropdown (only display name)
+    // Custom Questions (no [key] in dropdown)
     function renderCustomQuestionEditor() {
         const topicSelect = document.getElementById('editorTopicSelect');
         topicSelect.innerHTML = allTopics.map(t => `<option value="${t}">${topicNames[t] || t}</option>`).join('');
@@ -1330,17 +1334,7 @@
         document.getElementById('repeatNewPwd').value = '';
     }
 
-    function loadSettingsIntoForm() {
-        document.getElementById('timerToggleSetting').value = timerEnabled ? 'on' : 'off';
-        document.getElementById('soundToggle').value = soundEnabled ? 'on' : 'off';
-    }
-    function saveSettings() {
-        timerEnabled = document.getElementById('timerToggleSetting').value === 'on';
-        soundEnabled = document.getElementById('soundToggle').value === 'on';
-        alert('Settings saved!'); showScreen('menu');
-    }
-
-    // --- EVENT BINDINGS ---
+    // --- EVENT BINDINGS (removed settings references) ---
     function bindEvents() {
         const $ = (id) => document.getElementById(id);
         // Auth
@@ -1357,7 +1351,6 @@
         // Menu
         if ($('playBtn')) $('playBtn').onclick = () => showScreen('setup');
         if ($('profileMenuBtn')) $('profileMenuBtn').onclick = () => showScreen('profile');
-        if ($('settingsMenuBtn')) $('settingsMenuBtn').onclick = () => showScreen('settings');
         if ($('achievementsBtn')) $('achievementsBtn').onclick = () => { renderAchievements(); showScreen('achievementsScreen'); };
         if ($('instructionsMenuBtn')) $('instructionsMenuBtn').onclick = () => showScreen('instructions');
         if ($('teacherMenuBtn')) $('teacherMenuBtn').onclick = async () => {
@@ -1370,10 +1363,6 @@
         if ($('saveProfileBtn')) $('saveProfileBtn').onclick = saveProfileChanges;
         if ($('changePasswordBtn')) $('changePasswordBtn').onclick = changePassword;
         if ($('backFromProfileBtn')) $('backFromProfileBtn').onclick = () => showScreen('menu');
-
-        // Settings
-        if ($('backFromSettingsBtn')) $('backFromSettingsBtn').onclick = () => showScreen('menu');
-        if ($('saveSettingsBtn')) $('saveSettingsBtn').onclick = saveSettings;
 
         // Achievements / Instructions
         if ($('backFromAchievementsBtn')) $('backFromAchievementsBtn').onclick = () => showScreen('menu');
@@ -1388,6 +1377,7 @@
         if ($('resetTopicsBtn')) $('resetTopicsBtn').onclick = resetTopics;
         if ($('changePwdBtn')) $('changePwdBtn').onclick = changeTeacherPassword;
         if ($('saveTimerSettingsBtn')) $('saveTimerSettingsBtn').onclick = saveTimerSettings;
+        if ($('saveTopicChangesBtn')) $('saveTopicChangesBtn').onclick = saveTopicChanges;
 
         // Setup / Game
         if ($('backFromSetupBtn')) $('backFromSetupBtn').onclick = () => showScreen('menu');
