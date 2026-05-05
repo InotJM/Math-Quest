@@ -1067,7 +1067,7 @@
         }, 700);
     }
 
-    // --- PROFILE FUNCTIONS (fixed password change) ---
+    // --- PROFILE FUNCTIONS (robust password change) ---
     async function loadProfileData() {
         document.getElementById('profileUsernameDisplay').value = student.username || '';
         document.getElementById('profileDisplayName').value = student.name || '';
@@ -1094,17 +1094,17 @@
             return alert('New passwords do not match.');
         }
 
-        // Re-authenticate by signing in with current credentials
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: currentUser.email,
-            password: currentPwd
-        });
-        if (signInError) {
+        // Step 1: Re-authenticate to obtain a fresh nonce
+        const { data: reauthData, error: reauthError } = await supabase.auth.reauthenticate({ password: currentPwd });
+        if (reauthError) {
             return alert('Current password is incorrect.');
         }
 
-        // Now update the password
-        const { error: updateError } = await supabase.auth.updateUser({ password: newPwd });
+        // Step 2: Update the password using the nonce
+        const { error: updateError } = await supabase.auth.updateUser({
+            password: newPwd,
+            nonce: reauthData.nonce
+        });
         if (updateError) {
             alert('Password change failed: ' + updateError.message);
         } else {
@@ -1182,7 +1182,7 @@
         await loadAllData(); alert('Default topics saved!');
     }
 
-    // Topic Manager (explicit Save, not auto-save)
+    // Topic Manager (explicit Save button)
     let topicManagerInputHandler = null;
     function renderTopicManager() {
         const list = document.getElementById('topicManagerList');
@@ -1199,7 +1199,7 @@
             nameInput.type = 'text';
             nameInput.value = topicNames[key] || key;
             nameInput.dataset.key = key;
-            nameInput.dataset.originalValue = nameInput.value; // store original
+            nameInput.dataset.originalValue = nameInput.value;
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'small-btn delete';
             deleteBtn.innerText = '✕';
@@ -1210,10 +1210,8 @@
             div.appendChild(deleteBtn);
             list.appendChild(div);
         });
-        // No auto-save listener; save will be triggered by the button
     }
 
-    // New function to save all topic display names
     async function saveTopicChanges() {
         const inputs = document.querySelectorAll('#topicManagerList input[data-key]');
         const updates = [];
@@ -1222,7 +1220,7 @@
             const newName = input.value.trim();
             if (newName && newName !== input.dataset.originalValue) {
                 updates.push({ key, name: newName });
-                input.dataset.originalValue = newName; // update original to prevent re-saving unchanged
+                input.dataset.originalValue = newName;
             }
         });
         if (updates.length === 0) {
@@ -1334,7 +1332,7 @@
         document.getElementById('repeatNewPwd').value = '';
     }
 
-    // --- EVENT BINDINGS (removed settings references) ---
+    // --- EVENT BINDINGS ---
     function bindEvents() {
         const $ = (id) => document.getElementById(id);
         // Auth
