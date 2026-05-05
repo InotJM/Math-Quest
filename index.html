@@ -1073,19 +1073,13 @@ if (profile) {
         await renderMyHistory();
     }
     async function saveProfileChanges() {
+    async function saveProfileChanges() {
     const newName = document.getElementById('profileDisplayName').value.trim() || 'Hero';
     const newSection = document.getElementById('profileSection').value.trim();
     const newAvatar = document.getElementById('profileAvatar').value;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    const currentUsername = user?.user_metadata?.username || student.username;
-    if (!currentUsername) {
-        return alert('Cannot save profile: username missing. Please log out and back in.');
-    }
-
     const { error } = await supabase.from('profiles').upsert({
         id: currentUser.id,
-        username: currentUsername,
         name: newName,
         section: newSection,
         avatar: newAvatar,
@@ -1097,16 +1091,18 @@ if (profile) {
         trophies: trophies,
         inventory: inventory,
         achievements: stats.achievements
-    });
+    });  // username is NOT included – it should never change
 
     if (error) {
         console.error('Save profile error:', error);
         alert('Failed to save profile: ' + error.message);
     } else {
+        // Update local state immediately
         student.name = newName;
         student.section = newSection;
         student.avatar = newAvatar;
         updateUIElements();
+        // Reload from DB to double‑check
         await loadAllData();
         alert('Profile updated!');
     }
