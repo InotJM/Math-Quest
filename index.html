@@ -1076,13 +1076,36 @@
         await renderMyHistory();
     }
     async function saveProfileChanges() {
-        student.name = document.getElementById('profileDisplayName').value.trim() || 'Hero';
-        student.section = document.getElementById('profileSection').value.trim();
-        student.avatar = document.getElementById('profileAvatar').value;
-        await saveProfile();
+    student.name = document.getElementById('profileDisplayName').value.trim() || 'Hero';
+    student.section = document.getElementById('profileSection').value.trim();
+    student.avatar = document.getElementById('profileAvatar').value;
+
+    const { error } = await supabase.from('profiles').upsert({
+        id: currentUser.id,
+        username: student.username,
+        name: student.name,
+        section: student.section,
+        avatar: student.avatar,
+        xp: stats.xp,
+        level: stats.level,
+        total_correct: stats.totalCorrect,
+        total_games: stats.totalGames,
+        best_streak: stats.bestStreak,
+        trophies: trophies,
+        inventory: inventory,
+        achievements: stats.achievements
+    });
+
+    if (error) {
+        console.error('Save profile error:', error);
+        alert('Failed to save profile: ' + error.message);
+    } else {
+        // Update UI and reload data to be safe
         updateUIElements();
+        await loadAllData();  // reload fresh from DB
         alert('Profile updated!');
     }
+}
     async function changePassword() {
     const currentPwd = document.getElementById('currentProfilePassword').value;
     const newPwd = document.getElementById('newProfilePassword').value;
@@ -1095,15 +1118,25 @@
         return alert('New passwords do not match.');
     }
 
-    // Step 1: Re-authenticate with current password
-    const { error: reauthError } = await supabase.auth.reauthenticate({ password: currentPwd });
-    if (reauthError) {
-        // Provide a more specific error if possible
-        console.error('Reauth error:', reauthError);
+    // Get the fake email from the stored username
+    const username = student.username;
+    if (!username) {
+        return alert('User data missing. Please log out and back in.');
+    }
+    const fakeEmail = username + '@mathquest.internal';
+
+    // Attempt to sign in again with the current password
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: fakeEmail,
+        password: currentPwd
+    });
+
+    if (signInError) {
+        console.error('Sign in error:', signInError);
         return alert('Current password is incorrect.');
     }
 
-    // Step 2: Update the password (session is now fresh)
+    // Now update the password (session is fresh)
     const { error: updateError } = await supabase.auth.updateUser({ password: newPwd });
     if (updateError) {
         alert('Password change failed: ' + updateError.message);
