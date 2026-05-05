@@ -1118,45 +1118,17 @@
         return alert('New passwords do not match.');
     }
 
-    // 1. Remember the user's id and email before signing out
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user || !user.email) {
-        return alert('Session error. Please log out and log back in.');
+    // Directly update the password – no reauthentication needed because setting is OFF
+    const { error } = await supabase.auth.updateUser({ password: newPwd });
+
+    if (error) {
+        alert('Password change failed: ' + error.message);
+    } else {
+        alert('Password changed successfully!');
+        document.getElementById('currentProfilePassword').value = '';
+        document.getElementById('newProfilePassword').value = '';
+        document.getElementById('confirmProfilePassword').value = '';
     }
-    const userEmail = user.email;
-    const userId = user.id;
-
-    // 2. Sign out (clears current session)
-    await supabase.auth.signOut();
-
-    // 3. Sign in again with the current password
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: userEmail,
-        password: currentPwd
-    });
-
-    if (signInError) {
-        console.error('Sign‑in error after sign out:', signInError);
-        // Re‑sign in with the old session? Too messy. Just alert.
-        return alert('Current password is incorrect. Please try again.');
-    }
-
-    // 4. Now we have a fresh session – change the password
-    const { error: updateError } = await supabase.auth.updateUser({ password: newPwd });
-    if (updateError) {
-        alert('Password change failed: ' + updateError.message);
-        // If failed, at least the user is logged in again.
-        return;
-    }
-
-    // 5. Password changed – reload all user data
-    await loadAllData();
-    alert('Password changed successfully! You may need to log in again next time.');
-
-    // Clear the input fields
-    document.getElementById('currentProfilePassword').value = '';
-    document.getElementById('newProfilePassword').value = '';
-    document.getElementById('confirmProfilePassword').value = '';
 }
     async function renderMyHistory() {
         const tbody = document.getElementById('myHistoryTableBody');
