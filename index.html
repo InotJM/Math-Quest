@@ -660,21 +660,25 @@
         if (!currentUser) return;
 
         // Profile
-        const { data: profile } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
-        if (profile) {
-            student.username = profile.username || '';
-            student.name = profile.name || 'Hero';
-            student.section = profile.section || '';
-            student.avatar = profile.avatar || '🧙';
-            stats.xp = profile.xp || 0;
-            stats.level = profile.level || 1;
-            stats.totalCorrect = profile.total_correct || 0;
-            stats.totalGames = profile.total_games || 0;
-            stats.bestStreak = profile.best_streak || 0;
-            trophies = profile.trophies || { trophy1: false, trophy2: false, trophy3: false };
-            inventory = profile.inventory || { timeBoost: 0, extraLife: 0, hint: 0 };
-            stats.achievements = profile.achievements || {};
-        }
+const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
+if (profileError) console.error('Profile fetch error:', profileError);
+if (profile) {
+    student.username = profile.username || '';
+    student.name = profile.name || 'Hero';
+    student.section = profile.section || '';
+    student.avatar = profile.avatar || '🧙';
+    stats.xp = profile.xp || 0;
+    stats.level = profile.level || 1;
+    stats.totalCorrect = profile.total_correct || 0;
+    stats.totalGames = profile.total_games || 0;
+    stats.bestStreak = profile.best_streak || 0;
+    trophies = profile.trophies || { trophy1: false, trophy2: false, trophy3: false };
+    inventory = profile.inventory || { timeBoost: 0, extraLife: 0, hint: 0 };
+    stats.achievements = profile.achievements || {};
+} else {
+    console.warn('No profile found for user', currentUser.id);
+    // Optionally create a default profile here
+}
 
         // Topics
         const { data: topicsData, error: topicsErr } = await supabase.from('topics').select('*');
@@ -1030,15 +1034,15 @@
         const selected = []; allTopics.forEach(t => { if (document.getElementById(`chk_${t}`)?.checked) selected.push(t); });
         if (selected.length < 3) { document.getElementById('topicWarning').innerText = 'Select at least 3 topics!'; return; }
         document.getElementById('topicWarning').innerText = '';
-        const { data: tEn } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_enabled').single();
-        const { data: tSec } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_seconds').single();
+        const { data: tEn } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_enabled').maybeSingle();
+        const { data: tSec } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_seconds').maybeSingle();
         timerEnabled = tEn ? tEn.value === 'true' : true;
         timerSeconds = tSec ? parseInt(tSec.value) : 40;
         if (mode === 'timeattack') timerSeconds = 60;
         timeLeft = timerSeconds; if (timerDisplay) timerDisplay.innerText = `${timeLeft}s`;
         currentGame = { mode, difficultyBase: diff, selectedTopics: selected, correctCount:0, streak:0, lives:3, gameActive:true, adaptiveFactor:0 };
         showScreen('game'); updateLivesDisplay(); updateActiveTopicsBar(); updateUIElements(); renderMapSteps(); updateUI();
-        feedbackMsg.innerHTML = '⚡ Ready, hero!';
+        feedbackMsg.innerHTML = `⚡ Ready, ${student.name}!`;
         startCountdown(() => { generateQuestion(); playSound('click'); });
     }
     function updateActiveTopicsBar() {
@@ -1069,16 +1073,22 @@
         await renderMyHistory();
     }
     async function saveProfileChanges() {
-    student.name = document.getElementById('profileDisplayName').value.trim() || 'Hero';
-    student.section = document.getElementById('profileSection').value.trim();
-    student.avatar = document.getElementById('profileAvatar').value;
+    const newName = document.getElementById('profileDisplayName').value.trim() || 'Hero';
+    const newSection = document.getElementById('profileSection').value.trim();
+    const newAvatar = document.getElementById('profileAvatar').value;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    const currentUsername = user?.user_metadata?.username || student.username;
+    if (!currentUsername) {
+        return alert('Cannot save profile: username missing. Please log out and back in.');
+    }
 
     const { error } = await supabase.from('profiles').upsert({
         id: currentUser.id,
-        username: student.username,
-        name: student.name,
-        section: student.section,
-        avatar: student.avatar,
+        username: currentUsername,
+        name: newName,
+        section: newSection,
+        avatar: newAvatar,
         xp: stats.xp,
         level: stats.level,
         total_correct: stats.totalCorrect,
@@ -1093,9 +1103,11 @@
         console.error('Save profile error:', error);
         alert('Failed to save profile: ' + error.message);
     } else {
-        // Update UI and reload data to be safe
+        student.name = newName;
+        student.section = newSection;
+        student.avatar = newAvatar;
         updateUIElements();
-        await loadAllData();  // reload fresh from DB
+        await loadAllData();
         alert('Profile updated!');
     }
 }
