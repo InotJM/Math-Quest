@@ -1084,43 +1084,37 @@
         alert('Profile updated!');
     }
     async function changePassword() {
-        const currentPwd = document.getElementById('currentProfilePassword').value;
-        const newPwd = document.getElementById('newProfilePassword').value;
-        const confirmPwd = document.getElementById('confirmProfilePassword').value;
-        if (!currentPwd || !newPwd || !confirmPwd) {
-            return alert('Please fill all password fields.');
-        }
-        if (newPwd !== confirmPwd) {
-            return alert('New passwords do not match.');
-        }
+    const currentPwd = document.getElementById('currentProfilePassword').value;
+    const newPwd = document.getElementById('newProfilePassword').value;
+    const confirmPwd = document.getElementById('confirmProfilePassword').value;
 
-        // Get current username to re-sign in
-        const username = student.username;
-        if (!username) {
-            return alert('Cannot verify identity. Please log out and log back in.');
-        }
-
-        // Step 1: Re-sign in with current password to get a fresh session
-        const fakeEmail = username + '@mathquest.internal';
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: fakeEmail,
-            password: currentPwd
-        });
-        if (signInError) {
-            return alert('Current password is incorrect.');
-        }
-
-        // Step 2: Now update the password (session is fresh, no nonce required)
-        const { error: updateError } = await supabase.auth.updateUser({ password: newPwd });
-        if (updateError) {
-            alert('Password change failed: ' + updateError.message);
-        } else {
-            alert('Password changed successfully!');
-            document.getElementById('currentProfilePassword').value = '';
-            document.getElementById('newProfilePassword').value = '';
-            document.getElementById('confirmProfilePassword').value = '';
-        }
+    if (!currentPwd || !newPwd || !confirmPwd) {
+        return alert('Please fill all password fields.');
     }
+    if (newPwd !== confirmPwd) {
+        return alert('New passwords do not match.');
+    }
+
+    // Step 1: Re-authenticate with current password
+    const { error: reauthError } = await supabase.auth.reauthenticate({ password: currentPwd });
+    if (reauthError) {
+        // Provide a more specific error if possible
+        console.error('Reauth error:', reauthError);
+        return alert('Current password is incorrect.');
+    }
+
+    // Step 2: Update the password (session is now fresh)
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPwd });
+    if (updateError) {
+        alert('Password change failed: ' + updateError.message);
+    } else {
+        alert('Password changed successfully!');
+        // Clear fields
+        document.getElementById('currentProfilePassword').value = '';
+        document.getElementById('newProfilePassword').value = '';
+        document.getElementById('confirmProfilePassword').value = '';
+    }
+}
     async function renderMyHistory() {
         const tbody = document.getElementById('myHistoryTableBody');
         tbody.innerHTML = '';
