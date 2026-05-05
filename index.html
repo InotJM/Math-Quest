@@ -226,7 +226,7 @@
         </div>
     </div>
 
-    <!-- PROFILE SCREEN (updated with current password field) -->
+    <!-- PROFILE SCREEN (with current password field) -->
     <div id="profileScreen" class="screen">
         <div class="content-panel">
             <div class="panel-title"><i class="fas fa-user-edit"></i> Hero Profile</div>
@@ -580,7 +580,7 @@
         return regex.test(username) && username.length >= 3 && username.length <= 20;
     }
 
-    // --- AUTH FUNCTIONS (updated) ---
+    // --- AUTH FUNCTIONS (updated clearing fields) ---
     async function signIn() {
         const login = document.getElementById('authLogin').value.trim();
         const password = document.getElementById('authPasswordSignIn').value;
@@ -594,7 +594,6 @@
             document.getElementById('authError').innerText = error.message;
         } else {
             document.getElementById('authError').innerText = '';
-            // CLEAR THE FIELDS AFTER SUCCESSFUL SIGN IN
             document.getElementById('authLogin').value = '';
             document.getElementById('authPasswordSignIn').value = '';
             await checkUser();
@@ -635,7 +634,6 @@
 
     if (data.user) {
         const fullName = firstName + ' ' + surname;
-        // Use upsert to create / update the profile row (idempotent)
         const { error: upsertError } = await supabase.from('profiles').upsert({
             id: data.user.id,
             username: username,
@@ -1033,7 +1031,7 @@
         }, 1000);
     }
 
-    // --- SETUP / TOPICS (now shows topic ID) ---
+    // --- SETUP / TOPICS (no [key] prefix) ---
     function renderTopicCheckboxes() {
         const container = document.getElementById('topicCheckboxContainer');
         container.innerHTML = '';
@@ -1042,7 +1040,7 @@
             const div = document.createElement('div');
             div.className = 'topic-checkbox';
             div.innerHTML = `<input type="checkbox" id="chk_${t}" value="${t}" ${checked ? 'checked' : ''}>
-                             <label for="chk_${t}">[${t}] ${topicNames[t] || t}</label>`;
+                             <label for="chk_${t}">${topicNames[t] || t}</label>`;
             container.appendChild(div);
         });
     }
@@ -1082,7 +1080,7 @@
         }, 700);
     }
 
-    // --- PROFILE FUNCTIONS (updated with current password) ---
+    // --- PROFILE FUNCTIONS (updated changePassword) ---
     async function loadProfileData() {
         document.getElementById('profileUsernameDisplay').value = student.username || '';
         document.getElementById('profileDisplayName').value = student.name || '';
@@ -1109,17 +1107,15 @@
             return alert('New passwords do not match.');
         }
 
-        // Re‑authenticate with current password
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: currentUser.email,
-            password: currentPwd
-        });
-        if (signInError) {
+        // Re-authenticate with current password
+        const { data: reauthData, error: reauthError } = await supabase.auth.reauthenticate({ password: currentPwd });
+        if (reauthError) {
             return alert('Current password is incorrect.');
         }
 
-        // Now update to the new password
-        const { error } = await supabase.auth.updateUser({ password: newPwd });
+        // Update password with the obtained nonce
+        const nonce = reauthData.nonce;
+        const { error } = await supabase.auth.updateUser({ password: newPwd, nonce });
         if (error) {
             alert('Password change failed: ' + error.message);
         } else {
@@ -1142,7 +1138,7 @@
         });
     }
 
-    // --- TEACHER PANEL (updated functions) ---
+    // --- TEACHER PANEL (no [key] in Default Topics / Custom Questions dropdown) ---
     async function renderTeacherPanel() {
         if (!currentUser) return;
         const { data: allHistory } = await supabase.from('game_history').select('*');
@@ -1176,7 +1172,7 @@
         alert('Timer settings saved!');
     }
 
-    // --- DEFAULT TOPICS (now shows topic ID) ---
+    // Default Topics (only display name)
     function renderDefaultTopics() {
         const container = document.getElementById('defaultTopicsContainer');
         container.innerHTML = '';
@@ -1185,7 +1181,7 @@
             const div = document.createElement('div');
             div.className = 'topic-checkbox';
             div.innerHTML = `<input type="checkbox" class="default-topic-chk" value="${t}" ${checked ? 'checked' : ''}>
-                             <label>[${t}] ${topicNames[t] || t}</label>`;
+                             <label>${topicNames[t] || t}</label>`;
             container.appendChild(div);
         });
     }
@@ -1197,7 +1193,7 @@
         await loadAllData(); alert('Default topics saved!');
     }
 
-    // --- TOPIC MANAGER (shows topic ID) ---
+    // Topic Manager (shows key and editable name)
     let topicManagerInputHandler = null;
     function renderTopicManager() {
         const list = document.getElementById('topicManagerList');
@@ -1209,7 +1205,7 @@
             const keySpan = document.createElement('span');
             keySpan.style.fontWeight = 'bold';
             keySpan.style.marginRight = '6px';
-            keySpan.innerText = key;               // SHOWS THE TOPIC ID
+            keySpan.innerText = key;
             const nameInput = document.createElement('input');
             nameInput.type = 'text';
             nameInput.value = topicNames[key] || key;
@@ -1263,10 +1259,10 @@
         await loadAllData(); renderTopicManager(); renderDefaultTopics(); renderCustomQuestionEditor();
     }
 
-    // --- CUSTOM QUESTIONS (topic dropdown shows ID) ---
+    // Custom Questions topic dropdown (only display name)
     function renderCustomQuestionEditor() {
         const topicSelect = document.getElementById('editorTopicSelect');
-        topicSelect.innerHTML = allTopics.map(t => `<option value="${t}">[${t}] ${topicNames[t] || t}</option>`).join('');
+        topicSelect.innerHTML = allTopics.map(t => `<option value="${t}">${topicNames[t] || t}</option>`).join('');
         topicSelect.onchange = renderCustomQuestionsList;
         renderCustomQuestionsList();
     }
@@ -1329,7 +1325,6 @@
         await supabase.from('teacher_settings').upsert({ key: 'teacher_password', value: newPwd });
         teacherPassword = newPwd;
         alert('Password updated!');
-        // Clear all three fields
         document.getElementById('currentPwd').value = '';
         document.getElementById('newPwd').value = '';
         document.getElementById('repeatNewPwd').value = '';
@@ -1352,7 +1347,7 @@
         if ($('toggleAuthMode')) $('toggleAuthMode').onclick = () => setAuthMode(authMode === 'signIn' ? 'signUp' : 'signIn');
         const signInBtn = document.getElementById('signInBtn');
         if (signInBtn) {
-            signInBtn.replaceWith(signInBtn.cloneNode(true)); // remove old listeners
+            signInBtn.replaceWith(signInBtn.cloneNode(true));
             const newBtn = document.getElementById('signInBtn');
             newBtn.addEventListener('click', signIn);
         }
