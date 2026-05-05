@@ -1067,7 +1067,7 @@
         }, 700);
     }
 
-    // --- PROFILE FUNCTIONS (robust password change) ---
+    // --- PROFILE FUNCTIONS (fixed password change using re-sign-in) ---
     async function loadProfileData() {
         document.getElementById('profileUsernameDisplay').value = student.username || '';
         document.getElementById('profileDisplayName').value = student.name || '';
@@ -1094,21 +1094,28 @@
             return alert('New passwords do not match.');
         }
 
-        // Step 1: Re-authenticate to obtain a fresh nonce
-        const { data: reauthData, error: reauthError } = await supabase.auth.reauthenticate({ password: currentPwd });
-        if (reauthError) {
+        // Get current username to re-sign in
+        const username = student.username;
+        if (!username) {
+            return alert('Cannot verify identity. Please log out and log back in.');
+        }
+
+        // Step 1: Re-sign in with current password to get a fresh session
+        const fakeEmail = username + '@mathquest.internal';
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: fakeEmail,
+            password: currentPwd
+        });
+        if (signInError) {
             return alert('Current password is incorrect.');
         }
 
-        // Step 2: Update the password using the nonce
-        const { error: updateError } = await supabase.auth.updateUser({
-            password: newPwd,
-            nonce: reauthData.nonce
-        });
+        // Step 2: Now update the password (session is fresh, no nonce required)
+        const { error: updateError } = await supabase.auth.updateUser({ password: newPwd });
         if (updateError) {
             alert('Password change failed: ' + updateError.message);
         } else {
-            alert('Password changed!');
+            alert('Password changed successfully!');
             document.getElementById('currentProfilePassword').value = '';
             document.getElementById('newProfilePassword').value = '';
             document.getElementById('confirmProfilePassword').value = '';
