@@ -254,13 +254,6 @@
                 <div class="section-divider"></div>
                 <h3>🔒 Change Password</h3>
                 <div class="input-group">
-                    <label>Current Password</label>
-                    <div class="password-wrapper">
-                        <input type="password" id="currentProfilePassword">
-                        <span class="toggle-password" data-target="currentProfilePassword"><i class="fas fa-eye"></i></span>
-                    </div>
-                </div>
-                <div class="input-group">
                     <label>New Password</label>
                     <div class="password-wrapper">
                         <input type="password" id="newProfilePassword">
@@ -1107,38 +1100,24 @@
     }
 }
     async function changePassword() {
-    const currentPwd = document.getElementById('currentProfilePassword').value;
     const newPwd = document.getElementById('newProfilePassword').value;
     const confirmPwd = document.getElementById('confirmProfilePassword').value;
 
-    if (!currentPwd || !newPwd || !confirmPwd) {
-        return alert('Please fill all password fields.');
+    if (!newPwd || !confirmPwd) {
+        return alert('Please fill in both password fields.');
     }
     if (newPwd !== confirmPwd) {
         return alert('New passwords do not match.');
     }
-
-    // Check password strength: at least 6 chars, must have lowercase, uppercase, digit
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
-    if (!passwordRegex.test(newPwd)) {
-        return alert('Password must be at least 6 characters and contain at least one lowercase letter, one uppercase letter, and one digit.');
+    if (newPwd.length < 6) {
+        return alert('Password must be at least 6 characters.');
     }
 
-    // Step 1: Reauthenticate with current password
-    const { error: reauthError } = await supabase.auth.reauthenticate({ password: currentPwd });
-    if (reauthError) {
-        console.error('Reauth error details:', reauthError);
-        return alert('Current password is incorrect or reauthentication failed.');
-    }
-
-    // Step 2: Update the password (reauthentication gives a fresh session claim)
-    const { error: updateError } = await supabase.auth.updateUser({ password: newPwd });
-    if (updateError) {
-        console.error('Update error details:', updateError);
-        alert('Password change failed: ' + updateError.message);
+    const { error } = await supabase.auth.updateUser({ password: newPwd });
+    if (error) {
+        alert('Password change failed: ' + error.message);
     } else {
         alert('Password changed successfully!');
-        document.getElementById('currentProfilePassword').value = '';
         document.getElementById('newProfilePassword').value = '';
         document.getElementById('confirmProfilePassword').value = '';
     }
