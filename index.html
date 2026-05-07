@@ -905,12 +905,12 @@
         
         if (timerEnabled) {
             if (currentGame.mode === 'standard') {
-                // Reset timer for each new question in standard mode
+                // Standard mode: reset timer for each new question to the teacher's setting
                 timeLeft = timerSeconds;
                 timerDisplay.innerText = `${timeLeft}s`;
                 startTimer();
             } else if (currentGame.mode === 'timeattack') {
-                // In Time Attack, timer is started once at the beginning and never reset
+                // Time Attack mode: start timer only once at the beginning of the game
                 if (!timerActive) {
                     timeLeft = timerSeconds;
                     timerDisplay.innerText = `${timeLeft}s`;
@@ -1186,7 +1186,7 @@
         });
     }
 
-    // ---------- TEACHER PANEL (FIXED: shows all history, password prompt restored) ----------
+    // ---------- TEACHER PANEL (shows ALL game history, password prompt works) ----------
     async function renderTeacherPanel() {
         // ----- Access Control: teacher role OR correct password -----
         if (!isTeacherAuthorized && student.role !== 'teacher') {
@@ -1200,12 +1200,12 @@
             }
         }
 
-        // ----- Class Progress: fetch all game_history entries and all profiles -----
+        // ----- Class Progress: fetch ALL game history (requires RLS policy for teachers) -----
         const tbody = document.getElementById('historyTableBody');
         tbody.innerHTML = '<tr><td colspan="8">Loading history...</td></tr>';
 
         try {
-            // Fetch all game history
+            // Fetch all game history (no user_id filter)
             const { data: allHistory, error: historyError } = await supabase
                 .from('game_history')
                 .select('*')
@@ -1213,11 +1213,11 @@
 
             if (historyError) {
                 console.error('History fetch error:', historyError);
-                tbody.innerHTML = '<table><td colspan="8">Error loading history. See console.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8">Error loading history. Make sure the teacher policy is applied on game_history. See console.</td></tr>';
             } else if (!allHistory || allHistory.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="8">No game history found.</td></tr>';
             } else {
-                // Fetch all profiles once and build a lookup map by user_id
+                // Fetch all profiles once and build a lookup map
                 const { data: allProfiles, error: profilesError } = await supabase
                     .from('profiles')
                     .select('id, name, section');
@@ -1227,28 +1227,26 @@
                     allProfiles.forEach(prof => {
                         profileMap[prof.id] = { name: prof.name || 'Unknown', section: prof.section || '' };
                     });
+                } else {
+                    console.warn('Could not fetch profiles, using defaults', profilesError);
                 }
 
-                // Build table rows
-                const rows = [];
+                // Build rows
+                tbody.innerHTML = '';
                 for (const entry of allHistory) {
                     const profile = profileMap[entry.user_id] || { name: 'Unknown', section: '' };
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td>${profile.name}</td>
-                        <td>${profile.section}</td>
-                        <td>${entry.date}</td>
-                        <td>${entry.mode}</td>
-                        <td>${entry.topics}</td>
-                        <td>${entry.score}</td>
-                        <td>${entry.result}</td>
-                        <td>${entry.xp}</td>
+                        <td>${escapeHtml(profile.name)}</td>
+                        <td>${escapeHtml(profile.section)}</td>
+                        <td>${escapeHtml(entry.date)}</td>
+                        <td>${escapeHtml(entry.mode)}</td>
+                        <td>${escapeHtml(entry.topics)}</td>
+                        <td>${escapeHtml(entry.score)}</td>
+                        <td>${escapeHtml(entry.result)}</td>
+                        <td>${escapeHtml(entry.xp)}</td>
                     `;
-                    rows.push(tr);
-                }
-                tbody.innerHTML = '';
-                for (const row of rows) {
-                    tbody.appendChild(row);
+                    tbody.appendChild(tr);
                 }
             }
         } catch (err) {
@@ -1266,6 +1264,17 @@
         const { data: tSec } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_seconds').single();
         document.getElementById('teacherTimerEnabled').value = tEn ? tEn.value : 'true';
         document.getElementById('teacherTimerSeconds').value = tSec ? tSec.value : '40';
+    }
+
+    // Helper to prevent XSS
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
     }
 
     // ----- Teacher helper functions (each checks authorization) -----
