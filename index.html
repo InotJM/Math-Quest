@@ -209,7 +209,7 @@
         </div>
     </div>
 
-    <!-- MAIN MENU (Settings removed) -->
+    <!-- MAIN MENU -->
     <div id="menuScreen" class="screen">
         <div class="menu-container">
             <div class="game-title">⚡ MATH QUEST ⚡</div>
@@ -225,7 +225,7 @@
         </div>
     </div>
 
-    <!-- PROFILE SCREEN (with current password field) -->
+    <!-- PROFILE SCREEN -->
     <div id="profileScreen" class="screen">
         <div class="content-panel">
             <div class="panel-title"><i class="fas fa-user-edit"></i> Hero Profile</div>
@@ -304,7 +304,7 @@
         </div>
     </div>
 
-    <!-- TEACHER PANEL (added Save button in Manage Topics) -->
+    <!-- TEACHER PANEL -->
     <div id="teacherScreen" class="screen">
         <div class="content-panel">
             <div class="panel-title"><i class="fas fa-chalkboard-teacher"></i> Teacher Panel</div>
@@ -501,7 +501,7 @@
     let stats = { xp: 0, level: 1, totalCorrect: 0, totalGames: 0, bestStreak: 0, achievements: {} };
     let inventory = { timeBoost: 0, extraLife: 0, hint: 0 };
     let currentUser = null;
-    let isTeacherAuthorized = false;   // becomes true if user has teacher role OR entered correct teacher password
+    let isTeacherAuthorized = false;
 
     let currentGame = {
         mode: 'standard', difficultyBase: 'medium', selectedTopics: [],
@@ -1132,7 +1132,7 @@
         tbody.innerHTML = '';
         if (!currentUser) return;
         const { data: history } = await supabase.from('game_history').select('*').eq('user_id', currentUser.id);
-        if (!history.length) { tbody.innerHTML = '<tr><td colspan="6">No game history.  </td></tr>'; return; }
+        if (!history.length) { tbody.innerHTML = '<td><td colspan="6">No game history.   </td></tr>'; return; }
         history.slice().reverse().forEach(entry => {
             const tr = document.createElement('tr');
             tr.innerHTML = `<td>${entry.date}</td><td>${entry.mode}</td><td>${entry.topics}</td><td>${entry.score}</td><td>${entry.result}</td><td>${entry.xp}</td>`;
@@ -1140,9 +1140,9 @@
         });
     }
 
-    // ---------- TEACHER PANEL (fixed: shows all students, topics visible) ----------
+    // ---------- TEACHER PANEL (completely fixed version) ----------
     async function renderTeacherPanel() {
-        // Ensure that only authorized users (teacher role or correct password) can see the panel
+        // Authorize: teacher role OR correct password
         if (!isTeacherAuthorized && student.role !== 'teacher') {
             const pwd = prompt('Enter teacher password:');
             if (pwd === teacherPassword) {
@@ -1154,39 +1154,63 @@
             }
         }
 
-        // Load class progress: fetch all game history and join with profiles
-        const { data: allHistory, error: historyError } = await supabase
-            .from('game_history')
-            .select('*, profiles(name, section)')
-            .order('date', { ascending: false });
-
+        // --- Load class progress using two separate queries (robust) ---
         const tbody = document.getElementById('historyTableBody');
-        tbody.innerHTML = '';
+        tbody.innerHTML = '<tr><td colspan="8">Loading history...</td></tr>';
 
-        if (historyError) {
-            console.error('History fetch error:', historyError);
-            tbody.innerHTML = '<tr><td colspan="8">Error loading history.</td></tr>';
-        } else if (!allHistory || allHistory.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8">No game history found.</td></tr>';
-        } else {
-            for (const entry of allHistory) {
-                const profile = entry.profiles;
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${profile ? (profile.name || 'Unknown') : 'Unknown'}</td>
-                    <td>${profile ? (profile.section || '') : ''}</td>
-                    <td>${entry.date}</td>
-                    <td>${entry.mode}</td>
-                    <td>${entry.topics}</td>
-                    <td>${entry.score}</td>
-                    <td>${entry.result}</td>
-                    <td>${entry.xp}</td>
-                `;
-                tbody.appendChild(tr);
+        try {
+            // 1. Fetch all game history entries
+            const { data: allHistory, error: historyError } = await supabase
+                .from('game_history')
+                .select('*')
+                .order('date', { ascending: false });
+
+            if (historyError) {
+                console.error('Failed to fetch history:', historyError);
+                tbody.innerHTML = '<tr><td colspan="8">Error loading history. Please check console.</td></tr>';
+            } else if (!allHistory || allHistory.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8">No game history found.</td></tr>';
+            } else {
+                // 2. For each history entry, fetch the corresponding profile by user_id
+                const rows = [];
+                for (const entry of allHistory) {
+                    const { data: profile, error: profileError } = await supabase
+                        .from('profiles')
+                        .select('name, section')
+                        .eq('id', entry.user_id)
+                        .single();
+
+                    let playerName = 'Unknown';
+                    let playerSection = '';
+                    if (!profileError && profile) {
+                        playerName = profile.name || 'Unknown';
+                        playerSection = profile.section || '';
+                    }
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${playerName}</td>
+                        <td>${playerSection}</td>
+                        <td>${entry.date}</td>
+                        <td>${entry.mode}</td>
+                        <td>${entry.topics}</td>
+                        <td>${entry.score}</td>
+                        <td>${entry.result}</td>
+                        <td>${entry.xp}</td>
+                    `;
+                    rows.push(tr);
+                }
+                tbody.innerHTML = '';
+                for (const row of rows) {
+                    tbody.appendChild(row);
+                }
             }
+        } catch (err) {
+            console.error('Unexpected error in teacher panel:', err);
+            tbody.innerHTML = '<tr><td colspan="8">Error loading history. See console.</td></tr>';
         }
 
-        // Render all the teacher controls (topics, questions, timer settings)
+        // --- Render all other teacher controls (must appear even if history fails) ---
         renderDefaultTopics();
         renderTopicManager();
         renderCustomQuestionEditor();
@@ -1199,7 +1223,6 @@
     }
 
     async function saveTimerSettings() {
-        // Only authorized teachers can save
         if (!isTeacherAuthorized && student.role !== 'teacher') {
             alert('You are not authorized to change timer settings.');
             return;
@@ -1211,7 +1234,6 @@
         alert('Timer settings saved!');
     }
 
-    // Default Topics (only display name)
     function renderDefaultTopics() {
         const container = document.getElementById('defaultTopicsContainer');
         container.innerHTML = '';
@@ -1236,7 +1258,6 @@
         await loadAllData(); alert('Default topics saved!');
     }
 
-    // Topic Manager
     let topicManagerInputHandler = null;
     function renderTopicManager() {
         const list = document.getElementById('topicManagerList');
@@ -1331,7 +1352,6 @@
         await loadAllData(); renderTopicManager(); renderDefaultTopics(); renderCustomQuestionEditor();
     }
 
-    // Custom Questions
     function renderCustomQuestionEditor() {
         const topicSelect = document.getElementById('editorTopicSelect');
         topicSelect.innerHTML = allTopics.map(t => `<option value="${t}">${topicNames[t] || t}</option>`).join('');
@@ -1442,7 +1462,6 @@
         if ($('achievementsBtn')) $('achievementsBtn').onclick = () => { renderAchievements(); showScreen('achievementsScreen'); };
         if ($('instructionsMenuBtn')) $('instructionsMenuBtn').onclick = () => showScreen('instructions');
         if ($('teacherMenuBtn')) $('teacherMenuBtn').onclick = async () => {
-            // Allow teacher role or password entry
             if (student.role === 'teacher') {
                 showScreen('teacher');
                 return;
