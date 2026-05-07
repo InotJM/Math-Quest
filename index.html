@@ -397,8 +397,7 @@
             <div class="input-group"><label>Game Mode</label>
                 <select id="gameModeSelect">
                     <option value="standard">Standard (10 questions)</option>
-                    <option value="endless">Endless Mode</option>
-                    <option value="timeattack">Time Attack (60s)</option>
+                    <option value="timeattack">Time Attack (60 seconds)</option>
                 </select>
             </div>
             <div class="input-group"><label>Difficulty</label>
@@ -408,7 +407,7 @@
                     <option value="hard">Hard</option>
                 </select>
             </div>
-            <div class="input-group"><label>Select Topics (min 3)</label></div>
+            <div class="input-group"><label>Select Topics (minimum 3)</label></div>
             <div id="topicCheckboxContainer" class="topic-checkbox-group"></div>
             <div id="topicWarning" class="warning-text"></div>
             <button class="menu-btn" id="startGameBtn">▶ Start Quest</button>
@@ -423,9 +422,9 @@
             <button class="menu-icon-btn" id="menuFromGameBtn"><i class="fas fa-door-open"></i></button>
         </div>
         <div class="stat-row">
-            <span><i class="fas fa-star"></i> Lv.<span id="playerLevel">1</span></span>
-            <span><i class="fas fa-trophy"></i> XP:<span id="playerXP">0</span>/<span id="nextXP">100</span></span>
-            <span><i class="fas fa-fire"></i> Best Streak:<span id="bestStreakDisplay">0</span></span>
+            <span><i class="fas fa-star"></i> Level <span id="playerLevel">1</span></span>
+            <span><i class="fas fa-trophy"></i> Experience Points <span id="playerXP">0</span>/<span id="nextXP">100</span></span>
+            <span><i class="fas fa-fire"></i> Best Streak <span id="bestStreakDisplay">0</span></span>
         </div>
         <div class="trophy-container">
             <span class="trophy" id="trophy1">🏆</span>
@@ -501,7 +500,7 @@
     let stats = { xp: 0, level: 1, totalCorrect: 0, totalGames: 0, bestStreak: 0, achievements: {} };
     let inventory = { timeBoost: 0, extraLife: 0, hint: 0 };
     let currentUser = null;
-    let isTeacherAuthorized = false;
+    let isTeacherAuthorized = false;   // becomes true after correct password entry
 
     let currentGame = {
         mode: 'standard', difficultyBase: 'medium', selectedTopics: [],
@@ -903,8 +902,22 @@
         document.getElementById('questionText').innerHTML = currentQuestion.text;
         answerInput.value = ''; userAnswered = false; submitBtn.disabled = false; submitBtn.style.display = '';
         continueBtn.style.display = 'none'; stopTimer();
-        if (timerEnabled && currentGame.mode !== 'timeattack') startTimer();
-        if (currentGame.mode === 'timeattack') { if (!timerActive) { timeLeft = timerSeconds; timerDisplay.innerText = `${timeLeft}s`; } startTimer(); }
+        
+        if (timerEnabled) {
+            if (currentGame.mode === 'standard') {
+                // Reset timer for each new question in standard mode
+                timeLeft = timerSeconds;
+                timerDisplay.innerText = `${timeLeft}s`;
+                startTimer();
+            } else if (currentGame.mode === 'timeattack') {
+                // In Time Attack, timer is started once at the beginning and never reset
+                if (!timerActive) {
+                    timeLeft = timerSeconds;
+                    timerDisplay.innerText = `${timeLeft}s`;
+                    startTimer();
+                }
+            }
+        }
         answerInput.focus();
     }
     function checkAnswer(userAnswer, correctAnswer, isFraction) {
@@ -979,7 +992,11 @@
         document.getElementById('gameEndModal').style.display = 'flex';
     }
     function updateUI() {
-        progressText.innerText = currentGame.mode === 'endless' ? `${currentGame.correctCount} correct` : `${currentGame.correctCount}/10`;
+        if (currentGame.mode === 'standard') {
+            progressText.innerText = `${currentGame.correctCount}/10`;
+        } else if (currentGame.mode === 'timeattack') {
+            progressText.innerText = `${currentGame.correctCount} correct`;
+        }
         updateMapProgress();
     }
     function updateLivesDisplay() {
@@ -996,7 +1013,7 @@
     }
     function renderMapSteps() {
         mapTrack.innerHTML = ''; stepElements = [];
-        const total = currentGame.mode === 'endless' ? Math.max(10, currentGame.correctCount + 5) : 10;
+        const total = currentGame.mode === 'standard' ? 10 : Math.max(10, currentGame.correctCount + 5);
         for (let i=1; i<=total; i++) { const d = document.createElement('div'); d.className='step'; d.innerText=i; mapTrack.appendChild(d); stepElements.push(d); }
         const trophySpan = document.createElement('span'); trophySpan.innerHTML='🏆'; mapTrack.appendChild(trophySpan);
         updateMapProgress();
@@ -1011,8 +1028,14 @@
         if (!timerEnabled) return; stopTimer(); timerActive = true;
         timerInterval = setInterval(() => {
             if (!timerActive) return;
-            timeLeft--; if (timerDisplay) timerDisplay.innerText = `${timeLeft}s`;
-            if (timeLeft <= 0) { stopTimer(); if (!userAnswered && currentGame.gameActive) handleIncorrect(); }
+            timeLeft--;
+            timerDisplay.innerText = `${timeLeft}s`;
+            if (timeLeft <= 0) {
+                stopTimer();
+                if (!userAnswered && currentGame.gameActive) {
+                    handleIncorrect();
+                }
+            }
         }, 1000);
     }
 
@@ -1035,14 +1058,37 @@
         const selected = []; allTopics.forEach(t => { if (document.getElementById(`chk_${t}`)?.checked) selected.push(t); });
         if (selected.length < 3) { document.getElementById('topicWarning').innerText = 'Select at least 3 topics!'; return; }
         document.getElementById('topicWarning').innerText = '';
+        
+        // Load timer settings from teacher settings
         const { data: tEn } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_enabled').single();
         const { data: tSec } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_seconds').single();
         timerEnabled = tEn ? tEn.value === 'true' : true;
-        timerSeconds = tSec ? parseInt(tSec.value) : 40;
-        if (mode === 'timeattack') timerSeconds = 60;
-        timeLeft = timerSeconds; if (timerDisplay) timerDisplay.innerText = `${timeLeft}s`;
-        currentGame = { mode, difficultyBase: diff, selectedTopics: selected, correctCount:0, streak:0, lives:3, gameActive:true, adaptiveFactor:0 };
-        showScreen('game'); updateLivesDisplay(); updateActiveTopicsBar(); updateUIElements(); renderMapSteps(); updateUI();
+        let teacherTimerSeconds = tSec ? parseInt(tSec.value) : 40;
+        
+        if (mode === 'timeattack') {
+            timerSeconds = 60;
+        } else {
+            timerSeconds = teacherTimerSeconds;
+        }
+        timeLeft = timerSeconds;
+        timerDisplay.innerText = `${timeLeft}s`;
+        
+        currentGame = {
+            mode: mode,
+            difficultyBase: diff,
+            selectedTopics: selected,
+            correctCount: 0,
+            streak: 0,
+            lives: 3,
+            gameActive: true,
+            adaptiveFactor: 0
+        };
+        showScreen('game');
+        updateLivesDisplay();
+        updateActiveTopicsBar();
+        updateUIElements();
+        renderMapSteps();
+        updateUI();
         feedbackMsg.innerHTML = `⚡ Ready, ${student.name}!`;
         startCountdown(() => { generateQuestion(); playSound('click'); });
     }
@@ -1132,7 +1178,7 @@
         tbody.innerHTML = '';
         if (!currentUser) return;
         const { data: history } = await supabase.from('game_history').select('*').eq('user_id', currentUser.id);
-        if (!history.length) { tbody.innerHTML = '<td><td colspan="6">No game history.   </td></tr>'; return; }
+        if (!history.length) { tbody.innerHTML = '<tr><td colspan="6">No game history.    </td>'; return; }
         history.slice().reverse().forEach(entry => {
             const tr = document.createElement('tr');
             tr.innerHTML = `<td>${entry.date}</td><td>${entry.mode}</td><td>${entry.topics}</td><td>${entry.score}</td><td>${entry.result}</td><td>${entry.xp}</td>`;
@@ -1140,57 +1186,57 @@
         });
     }
 
-    // ---------- TEACHER PANEL (completely fixed version) ----------
+    // ---------- TEACHER PANEL (FIXED: shows all history, password prompt restored) ----------
     async function renderTeacherPanel() {
-        // Authorize: teacher role OR correct password
+        // ----- Access Control: teacher role OR correct password -----
         if (!isTeacherAuthorized && student.role !== 'teacher') {
             const pwd = prompt('Enter teacher password:');
             if (pwd === teacherPassword) {
                 isTeacherAuthorized = true;
             } else {
-                if (pwd) alert('Incorrect password.');
+                if (pwd) alert('Incorrect teacher password.');
                 showScreen('menu');
                 return;
             }
         }
 
-        // --- Load class progress using two separate queries (robust) ---
+        // ----- Class Progress: fetch all game_history entries and all profiles -----
         const tbody = document.getElementById('historyTableBody');
         tbody.innerHTML = '<tr><td colspan="8">Loading history...</td></tr>';
 
         try {
-            // 1. Fetch all game history entries
+            // Fetch all game history
             const { data: allHistory, error: historyError } = await supabase
                 .from('game_history')
                 .select('*')
                 .order('date', { ascending: false });
 
             if (historyError) {
-                console.error('Failed to fetch history:', historyError);
-                tbody.innerHTML = '<tr><td colspan="8">Error loading history. Please check console.</td></tr>';
+                console.error('History fetch error:', historyError);
+                tbody.innerHTML = '<table><td colspan="8">Error loading history. See console.</td></tr>';
             } else if (!allHistory || allHistory.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="8">No game history found.</td></tr>';
             } else {
-                // 2. For each history entry, fetch the corresponding profile by user_id
+                // Fetch all profiles once and build a lookup map by user_id
+                const { data: allProfiles, error: profilesError } = await supabase
+                    .from('profiles')
+                    .select('id, name, section');
+
+                const profileMap = {};
+                if (!profilesError && allProfiles) {
+                    allProfiles.forEach(prof => {
+                        profileMap[prof.id] = { name: prof.name || 'Unknown', section: prof.section || '' };
+                    });
+                }
+
+                // Build table rows
                 const rows = [];
                 for (const entry of allHistory) {
-                    const { data: profile, error: profileError } = await supabase
-                        .from('profiles')
-                        .select('name, section')
-                        .eq('id', entry.user_id)
-                        .single();
-
-                    let playerName = 'Unknown';
-                    let playerSection = '';
-                    if (!profileError && profile) {
-                        playerName = profile.name || 'Unknown';
-                        playerSection = profile.section || '';
-                    }
-
+                    const profile = profileMap[entry.user_id] || { name: 'Unknown', section: '' };
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td>${playerName}</td>
-                        <td>${playerSection}</td>
+                        <td>${profile.name}</td>
+                        <td>${profile.section}</td>
                         <td>${entry.date}</td>
                         <td>${entry.mode}</td>
                         <td>${entry.topics}</td>
@@ -1207,10 +1253,10 @@
             }
         } catch (err) {
             console.error('Unexpected error in teacher panel:', err);
-            tbody.innerHTML = '<tr><td colspan="8">Error loading history. See console.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8">Unexpected error loading history.</td></tr>';
         }
 
-        // --- Render all other teacher controls (must appear even if history fails) ---
+        // ----- Render all other teacher controls (topics, questions, timer) -----
         renderDefaultTopics();
         renderTopicManager();
         renderCustomQuestionEditor();
@@ -1222,6 +1268,7 @@
         document.getElementById('teacherTimerSeconds').value = tSec ? tSec.value : '40';
     }
 
+    // ----- Teacher helper functions (each checks authorization) -----
     async function saveTimerSettings() {
         if (!isTeacherAuthorized && student.role !== 'teacher') {
             alert('You are not authorized to change timer settings.');
@@ -1462,6 +1509,7 @@
         if ($('achievementsBtn')) $('achievementsBtn').onclick = () => { renderAchievements(); showScreen('achievementsScreen'); };
         if ($('instructionsMenuBtn')) $('instructionsMenuBtn').onclick = () => showScreen('instructions');
         if ($('teacherMenuBtn')) $('teacherMenuBtn').onclick = async () => {
+            // Teacher role or password prompt
             if (student.role === 'teacher') {
                 showScreen('teacher');
                 return;
@@ -1471,7 +1519,7 @@
                 isTeacherAuthorized = true;
                 showScreen('teacher');
             } else if (pwd) {
-                alert('Incorrect!');
+                alert('Incorrect teacher password.');
             }
         };
 
