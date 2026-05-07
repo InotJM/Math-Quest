@@ -470,12 +470,12 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function() {
-    // --- CONFIGURATION ---
-    const SUPABASE_URL = 'https://retwqpcvjomeyfefuvdw.supabase.co'; 
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJldHdxcGN2am9tZXlmZWZ1dmR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4NzI1MDcsImV4cCI6MjA5MzQ0ODUwN30.d7XfMEsMmIXO4o7ux_h558PqLje1EBJWcEbHdBsfa44';             
+    // ---------- CONFIGURATION ----------
+    const SUPABASE_URL = 'https://retwqpcvjomeyfefuvdw.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJldHdxcGN2am9tZXlmZWZ1dmR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4NzI1MDcsImV4cCI6MjA5MzQ0ODUwN30.d7XfMEsMmIXO4o7ux_h558PqLje1EBJWcEbHdBsfa44';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // --- SCREEN MANAGER ---
+    // ---------- SCREEN MANAGER ----------
     const screens = {
         auth: document.getElementById('authScreen'),
         menu: document.getElementById('menuScreen'),
@@ -495,12 +495,13 @@
         if (name === 'profile') loadProfileData();
     }
 
-    // --- DATA STATE ---
+    // ---------- DATA STATE ----------
     let student = { username: '', name: 'Hero', section: '', avatar: '🧙', role: 'student' };
     let trophies = { trophy1: false, trophy2: false, trophy3: false };
     let stats = { xp: 0, level: 1, totalCorrect: 0, totalGames: 0, bestStreak: 0, achievements: {} };
     let inventory = { timeBoost: 0, extraLife: 0, hint: 0 };
     let currentUser = null;
+    let isTeacherAuthorized = false;   // becomes true if user has teacher role OR entered correct teacher password
 
     let currentGame = {
         mode: 'standard', difficultyBase: 'medium', selectedTopics: [],
@@ -529,7 +530,7 @@
     let stepElements = [];
     let speechTimeout = null;
 
-    // --- AUTH UI TOGGLE ---
+    // ---------- AUTH UI TOGGLE ----------
     let authMode = 'signIn';
     function setAuthMode(mode) {
         authMode = mode;
@@ -540,7 +541,7 @@
         document.getElementById('authError').innerText = '';
     }
 
-    // --- PASSWORD TOGGLE ---
+    // ---------- PASSWORD TOGGLE ----------
     function setupPasswordToggles() {
         document.querySelectorAll('.toggle-password').forEach(toggle => {
             toggle.addEventListener('click', function() {
@@ -554,13 +555,13 @@
         });
     }
 
-    // --- VALIDATION ---
+    // ---------- VALIDATION ----------
     function isValidUsername(username) {
         const regex = /^[a-zA-Z0-9._-]+$/;
         return regex.test(username) && username.length >= 3 && username.length <= 20;
     }
 
-    // --- AUTH FUNCTIONS ---
+    // ---------- AUTH FUNCTIONS ----------
     async function signIn() {
         const login = document.getElementById('authLogin').value.trim();
         const password = document.getElementById('authPasswordSignIn').value;
@@ -581,68 +582,68 @@
     }
 
     async function signUp() {
-      const firstName = document.getElementById('signUpFirstName').value.trim();
-      const surname = document.getElementById('signUpSurname').value.trim();
-      const username = document.getElementById('signUpUsername').value.trim();
-      const password = document.getElementById('authPasswordSignUp').value;
-      const errorDiv = document.getElementById('authError');
-    errorDiv.innerText = '';
+        const firstName = document.getElementById('signUpFirstName').value.trim();
+        const surname = document.getElementById('signUpSurname').value.trim();
+        const username = document.getElementById('signUpUsername').value.trim();
+        const password = document.getElementById('authPasswordSignUp').value;
+        const errorDiv = document.getElementById('authError');
+        errorDiv.innerText = '';
 
-    if (!firstName || !surname || !username || !password) {
-        errorDiv.innerText = 'Please fill all fields.';
-        return;
-    }
-    if (!isValidUsername(username)) {
-        errorDiv.innerText = 'Username must be 3-20 characters (letters, numbers, dots, hyphens, underscores only). No spaces.';
-        return;
-    }
+        if (!firstName || !surname || !username || !password) {
+            errorDiv.innerText = 'Please fill all fields.';
+            return;
+        }
+        if (!isValidUsername(username)) {
+            errorDiv.innerText = 'Username must be 3-20 characters (letters, numbers, dots, hyphens, underscores only). No spaces.';
+            return;
+        }
 
-    // Check uniqueness
-    const { data: existing } = await supabase.from('profiles').select('username').eq('username', username).maybeSingle();
-    if (existing) {
-        errorDiv.innerText = 'Username already exists. Choose another.';
-        return;
-    }
+        const { data: existing } = await supabase.from('profiles').select('username').eq('username', username).maybeSingle();
+        if (existing) {
+            errorDiv.innerText = 'Username already exists. Choose another.';
+            return;
+        }
 
-    const fakeEmail = username + '@mathquest.internal';
-    const { data, error } = await supabase.auth.signUp({ email: fakeEmail, password });
-    if (error) {
-        console.error('Sign up error:', error);
-        errorDiv.innerText = error.message;
-        return;
-    }
+        const fakeEmail = username + '@mathquest.internal';
+        const { data, error } = await supabase.auth.signUp({ email: fakeEmail, password });
+        if (error) {
+            console.error('Sign up error:', error);
+            errorDiv.innerText = error.message;
+            return;
+        }
 
-    if (data.user) {
-        const fullName = firstName + ' ' + surname;
-        const { error: upsertError } = await supabase.from('profiles').upsert({
-            id: data.user.id,
-            username: username,
-            name: fullName,
-            section: '',
-            avatar: '🧙',
-            role: 'student',
-            xp: 0,
-            level: 1,
-            total_correct: 0,
-            total_games: 0,
-            best_streak: 0,
-            trophies: { trophy1: false, trophy2: false, trophy3: false },
-            inventory: { timeBoost: 0, extraLife: 0, hint: 0 },
-            achievements: {}
-        });
-        if (upsertError) {
-            console.error('Profile upsert failed:', upsertError);
-            errorDiv.innerText = 'Account created but profile update failed. See console.';
-        } else {
-            alert('Account created! You can now sign in.');
-            setAuthMode('signIn');
+        if (data.user) {
+            const fullName = firstName + ' ' + surname;
+            const { error: upsertError } = await supabase.from('profiles').upsert({
+                id: data.user.id,
+                username: username,
+                name: fullName,
+                section: '',
+                avatar: '🧙',
+                role: 'student',
+                xp: 0,
+                level: 1,
+                total_correct: 0,
+                total_games: 0,
+                best_streak: 0,
+                trophies: { trophy1: false, trophy2: false, trophy3: false },
+                inventory: { timeBoost: 0, extraLife: 0, hint: 0 },
+                achievements: {}
+            });
+            if (upsertError) {
+                console.error('Profile upsert failed:', upsertError);
+                errorDiv.innerText = 'Account created but profile update failed. See console.';
+            } else {
+                alert('Account created! You can now sign in.');
+                setAuthMode('signIn');
+            }
         }
     }
-}
 
     async function signOut() {
         await supabase.auth.signOut();
         currentUser = null;
+        isTeacherAuthorized = false;
         showScreen('auth');
         setAuthMode('signIn');
     }
@@ -658,11 +659,10 @@
         }
     }
 
-    // --- SUPABASE DATA LOADING ---
+    // ---------- SUPABASE DATA LOADING ----------
     async function loadAllData() {
         if (!currentUser) return;
 
-        // Profile
         const { data: profile } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
         if (profile) {
             student.username = profile.username || '';
@@ -680,19 +680,16 @@
             stats.achievements = profile.achievements || {};
         }
 
-        // Topics
         const { data: topicsData, error: topicsErr } = await supabase.from('topics').select('*');
         if (topicsErr) console.error('Topics load error:', topicsErr);
         allTopics = (topicsData || []).map(t => t.key);
         topicNames = {};
         (topicsData || []).forEach(t => { topicNames[t.key] = t.name; });
 
-        // Default topics
         const { data: defaults, error: defErr } = await supabase.from('default_topics').select('topic_key');
         if (defErr) console.error('Default topics error:', defErr);
         defaultTopics = (defaults || []).map(d => d.topic_key);
 
-        // Custom questions
         const { data: custom, error: custErr } = await supabase.from('custom_questions').select('*');
         if (custErr) console.error('Custom questions error:', custErr);
         customQuestions = {};
@@ -701,7 +698,6 @@
             customQuestions[q.topic].push({ text: q.question_text, answer: q.answer });
         });
 
-        // Teacher password
         const { data: pwData, error: pwErr } = await supabase.from('teacher_settings').select('value').eq('key', 'teacher_password').single();
         if (pwErr) console.error('Teacher password load error:', pwErr);
         if (pwData) teacherPassword = pwData.value;
@@ -728,7 +724,7 @@
         });
     }
 
-    // --- UI UPDATES ---
+    // ---------- UI UPDATES ----------
     function updateUIElements() {
         document.getElementById('playerLevel').innerText = stats.level;
         document.getElementById('playerXP').innerText = stats.xp;
@@ -746,7 +742,7 @@
         document.getElementById('trophy3').classList.toggle('earned', trophies.trophy3);
     }
 
-    // --- AUDIO ---
+    // ---------- AUDIO ----------
     let audioCtx = null;
     function initAudio() {
         if (!audioCtx && window.AudioContext) {
@@ -761,7 +757,11 @@
             const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
             osc.connect(gain); gain.connect(audioCtx.destination);
             let freq = 440, dur = 0.12;
-            if (type === 'correct') { freq = 880; dur = 0.2; } else if (type === 'incorrect') { freq = 300; dur = 0.3; } else if (type === 'win') { freq = 1200; dur = 0.5; } else if (type === 'powerup') { freq = 660; dur = 0.2; } else if (type === 'click') { freq = 523; dur = 0.08; }
+            if (type === 'correct') { freq = 880; dur = 0.2; }
+            else if (type === 'incorrect') { freq = 300; dur = 0.3; }
+            else if (type === 'win') { freq = 1200; dur = 0.5; }
+            else if (type === 'powerup') { freq = 660; dur = 0.2; }
+            else if (type === 'click') { freq = 523; dur = 0.08; }
             osc.frequency.value = freq;
             gain.gain.setValueAtTime(0.15, now);
             gain.gain.exponentialRampToValueAtTime(0.01, now + dur);
@@ -769,7 +769,7 @@
         } catch(e) {}
     }
 
-    // --- ACHIEVEMENTS ---
+    // ---------- ACHIEVEMENTS ----------
     const achievementsList = [
         { id: 'streak5', name: 'Fire Streak', cond: () => currentGame.streak >= 5 },
         { id: 'streak10', name: 'Legend Streak', cond: () => currentGame.streak >= 10 },
@@ -802,7 +802,7 @@
         });
     }
 
-    // --- POWER-UPS ---
+    // ---------- POWER-UPS ----------
     function dropPowerup() {
         if (!currentGame.gameActive) return;
         const r = Math.random();
@@ -835,7 +835,7 @@
         playSound('click');
     }
 
-    // --- QUESTION GENERATION ---
+    // ---------- QUESTION GENERATION ----------
     function gcd(a,b) { return b ? gcd(b, a % b) : a; }
     const generators = {
         arithmetic: (diff, factor) => {
@@ -1016,7 +1016,7 @@
         }, 1000);
     }
 
-    // --- SETUP / TOPICS (no [key] prefix) ---
+    // ---------- SETUP / TOPICS ----------
     function renderTopicCheckboxes() {
         const container = document.getElementById('topicCheckboxContainer');
         container.innerHTML = '';
@@ -1065,7 +1065,7 @@
         }, 700);
     }
 
-    // --- PROFILE FUNCTIONS ---
+    // ---------- PROFILE FUNCTIONS ----------
     async function loadProfileData() {
         document.getElementById('profileUsernameDisplay').value = student.username || '';
         document.getElementById('profileDisplayName').value = student.name || '';
@@ -1140,43 +1140,41 @@
         });
     }
 
-    // --- TEACHER PANEL ---
+    // ---------- TEACHER PANEL (fixed: shows all students, topics visible) ----------
     async function renderTeacherPanel() {
-        if (!currentUser) return;
-        
-        const { data: currentProfile } = await supabase.from('profiles').select('role').eq('id', currentUser.id).single();
-        if (currentProfile?.role !== 'teacher') {
-            alert('Teacher access only. This panel is for teachers only.');
-            showScreen('menu');
-            return;
+        // Ensure that only authorized users (teacher role or correct password) can see the panel
+        if (!isTeacherAuthorized && student.role !== 'teacher') {
+            const pwd = prompt('Enter teacher password:');
+            if (pwd === teacherPassword) {
+                isTeacherAuthorized = true;
+            } else {
+                if (pwd) alert('Incorrect password.');
+                showScreen('menu');
+                return;
+            }
         }
-        
+
+        // Load class progress: fetch all game history and join with profiles
         const { data: allHistory, error: historyError } = await supabase
             .from('game_history')
-            .select(`
-                *,
-                profiles!inner (name, section, username, role)
-            `)
+            .select('*, profiles(name, section)')
             .order('date', { ascending: false });
-        
-        if (historyError) {
-            console.error('History fetch error:', historyError);
-            document.getElementById('historyTableBody').innerHTML = '<tr><td colspan="8">Error loading history.</td></tr>';
-            return;
-        }
-        
+
         const tbody = document.getElementById('historyTableBody');
         tbody.innerHTML = '';
-        
-        if (!allHistory || allHistory.length === 0) {
+
+        if (historyError) {
+            console.error('History fetch error:', historyError);
+            tbody.innerHTML = '<tr><td colspan="8">Error loading history.</td></tr>';
+        } else if (!allHistory || allHistory.length === 0) {
             tbody.innerHTML = '<tr><td colspan="8">No game history found.</td></tr>';
         } else {
-            allHistory.forEach(entry => {
+            for (const entry of allHistory) {
                 const profile = entry.profiles;
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${profile?.name || 'Unknown'}</td>
-                    <td>${profile?.section || ''}</td>
+                    <td>${profile ? (profile.name || 'Unknown') : 'Unknown'}</td>
+                    <td>${profile ? (profile.section || '') : ''}</td>
                     <td>${entry.date}</td>
                     <td>${entry.mode}</td>
                     <td>${entry.topics}</td>
@@ -1185,21 +1183,25 @@
                     <td>${entry.xp}</td>
                 `;
                 tbody.appendChild(tr);
-            });
+            }
         }
-        
+
+        // Render all the teacher controls (topics, questions, timer settings)
         renderDefaultTopics();
         renderTopicManager();
         renderCustomQuestionEditor();
-        
+
+        // Load current timer settings
         const { data: tEn } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_enabled').single();
         const { data: tSec } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_seconds').single();
         document.getElementById('teacherTimerEnabled').value = tEn ? tEn.value : 'true';
         document.getElementById('teacherTimerSeconds').value = tSec ? tSec.value : '40';
     }
+
     async function saveTimerSettings() {
-        if (student.role !== 'teacher') {
-            alert('Only teachers can change timer settings.');
+        // Only authorized teachers can save
+        if (!isTeacherAuthorized && student.role !== 'teacher') {
+            alert('You are not authorized to change timer settings.');
             return;
         }
         const enabled = document.getElementById('teacherTimerEnabled').value;
@@ -1223,8 +1225,8 @@
         });
     }
     async function saveDefaultTopics() {
-        if (student.role !== 'teacher') {
-            alert('Only teachers can change default topics.');
+        if (!isTeacherAuthorized && student.role !== 'teacher') {
+            alert('You are not authorized to change default topics.');
             return;
         }
         await supabase.from('default_topics').delete().neq('id',0);
@@ -1234,7 +1236,7 @@
         await loadAllData(); alert('Default topics saved!');
     }
 
-    // Topic Manager (explicit Save button)
+    // Topic Manager
     let topicManagerInputHandler = null;
     function renderTopicManager() {
         const list = document.getElementById('topicManagerList');
@@ -1265,8 +1267,8 @@
     }
 
     async function saveTopicChanges() {
-        if (student.role !== 'teacher') {
-            alert('Only teachers can manage topics.');
+        if (!isTeacherAuthorized && student.role !== 'teacher') {
+            alert('You are not authorized to manage topics.');
             return;
         }
         const inputs = document.querySelectorAll('#topicManagerList input[data-key]');
@@ -1291,8 +1293,8 @@
     }
 
     async function addNewTopic() {
-        if (student.role !== 'teacher') {
-            alert('Only teachers can add topics.');
+        if (!isTeacherAuthorized && student.role !== 'teacher') {
+            alert('You are not authorized to add topics.');
             return;
         }
         const key = document.getElementById('newTopicKey').value.trim().toLowerCase().replace(/\s+/g, '');
@@ -1304,8 +1306,8 @@
         document.getElementById('newTopicKey').value = ''; document.getElementById('newTopicName').value = '';
     }
     async function deleteTopic(key) {
-        if (student.role !== 'teacher') {
-            alert('Only teachers can delete topics.');
+        if (!isTeacherAuthorized && student.role !== 'teacher') {
+            alert('You are not authorized to delete topics.');
             return;
         }
         if (!confirm(`Delete topic "${topicNames[key]||key}"?`)) return;
@@ -1315,8 +1317,8 @@
         await loadAllData(); renderTopicManager(); renderDefaultTopics(); renderCustomQuestionEditor();
     }
     async function resetTopics() {
-        if (student.role !== 'teacher') {
-            alert('Only teachers can reset topics.');
+        if (!isTeacherAuthorized && student.role !== 'teacher') {
+            alert('You are not authorized to reset topics.');
             return;
         }
         if (!confirm('Reset to original 8 topics? Custom topics and questions will be lost.')) return;
@@ -1329,7 +1331,7 @@
         await loadAllData(); renderTopicManager(); renderDefaultTopics(); renderCustomQuestionEditor();
     }
 
-    // Custom Questions (no [key] in dropdown)
+    // Custom Questions
     function renderCustomQuestionEditor() {
         const topicSelect = document.getElementById('editorTopicSelect');
         topicSelect.innerHTML = allTopics.map(t => `<option value="${t}">${topicNames[t] || t}</option>`).join('');
@@ -1351,8 +1353,8 @@
         listDiv.querySelectorAll('.delete-q-btn').forEach(btn => btn.onclick = () => deleteCustomQuestion(parseInt(btn.dataset.index)));
     }
     async function addCustomQuestion() {
-        if (student.role !== 'teacher') {
-            alert('Only teachers can add custom questions.');
+        if (!isTeacherAuthorized && student.role !== 'teacher') {
+            alert('You are not authorized to add custom questions.');
             return;
         }
         const topic = document.getElementById('editorTopicSelect').value;
@@ -1364,8 +1366,8 @@
         document.getElementById('newQuestionText').value = ''; document.getElementById('newQuestionAnswer').value = '';
     }
     async function editCustomQuestion(index) {
-        if (student.role !== 'teacher') {
-            alert('Only teachers can edit custom questions.');
+        if (!isTeacherAuthorized && student.role !== 'teacher') {
+            alert('You are not authorized to edit custom questions.');
             return;
         }
         const topic = document.getElementById('editorTopicSelect').value;
@@ -1380,8 +1382,8 @@
         await loadAllData(); renderCustomQuestionsList();
     }
     async function deleteCustomQuestion(index) {
-        if (student.role !== 'teacher') {
-            alert('Only teachers can delete custom questions.');
+        if (!isTeacherAuthorized && student.role !== 'teacher') {
+            alert('You are not authorized to delete custom questions.');
             return;
         }
         if (!confirm('Delete this question?')) return;
@@ -1392,8 +1394,8 @@
         await loadAllData(); renderCustomQuestionsList();
     }
     async function clearHistory() {
-        if (student.role !== 'teacher') {
-            alert('Only teachers can clear history.');
+        if (!isTeacherAuthorized && student.role !== 'teacher') {
+            alert('You are not authorized to clear history.');
             return;
         }
         if (confirm('Delete all game history?')) {
@@ -1402,8 +1404,8 @@
         }
     }
     async function changeTeacherPassword() {
-        if (student.role !== 'teacher') {
-            alert('Only teachers can change the teacher password.');
+        if (!isTeacherAuthorized && student.role !== 'teacher') {
+            alert('You are not authorized to change the teacher password.');
             return;
         }
         const curr = document.getElementById('currentPwd').value;
@@ -1420,7 +1422,7 @@
         document.getElementById('repeatNewPwd').value = '';
     }
 
-    // --- EVENT BINDINGS ---
+    // ---------- EVENT BINDINGS ----------
     function bindEvents() {
         const $ = (id) => document.getElementById(id);
         // Auth
@@ -1440,12 +1442,14 @@
         if ($('achievementsBtn')) $('achievementsBtn').onclick = () => { renderAchievements(); showScreen('achievementsScreen'); };
         if ($('instructionsMenuBtn')) $('instructionsMenuBtn').onclick = () => showScreen('instructions');
         if ($('teacherMenuBtn')) $('teacherMenuBtn').onclick = async () => {
+            // Allow teacher role or password entry
             if (student.role === 'teacher') {
                 showScreen('teacher');
                 return;
             }
             const pwd = prompt('Enter teacher password:');
             if (pwd === teacherPassword) {
+                isTeacherAuthorized = true;
                 showScreen('teacher');
             } else if (pwd) {
                 alert('Incorrect!');
@@ -1461,7 +1465,7 @@
         if ($('backFromAchievementsBtn')) $('backFromAchievementsBtn').onclick = () => showScreen('menu');
         if ($('backFromInstructionsBtn')) $('backFromInstructionsBtn').onclick = () => showScreen('menu');
 
-        // Teacher
+        // Teacher panel actions
         if ($('backFromTeacherBtn')) $('backFromTeacherBtn').onclick = () => showScreen('menu');
         if ($('saveDefaultTopicsBtn')) $('saveDefaultTopicsBtn').onclick = saveDefaultTopics;
         if ($('addQuestionBtn')) $('addQuestionBtn').onclick = addCustomQuestion;
