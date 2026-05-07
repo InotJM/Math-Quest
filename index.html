@@ -219,7 +219,9 @@
                 <button class="menu-btn" id="profileMenuBtn"><i class="fas fa-user-circle"></i> Profile</button>
                 <button class="menu-btn" id="achievementsBtn"><i class="fas fa-medal"></i> Achievements</button>
                 <button class="menu-btn" id="instructionsMenuBtn"><i class="fas fa-book-open"></i> Instructions</button>
-                <button class="menu-btn" id="teacherMenuBtn"><i class="fas fa-chalkboard-user"></i> Teacher Panel</button>
+                <div id="teacherButtonContainer" style="display: block;">
+                    <button class="menu-btn" id="teacherMenuBtn"><i class="fas fa-chalkboard-user"></i> Teacher Panel</button>
+                </div>
                 <button class="menu-btn back-btn" id="signOutBtn"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
             </div>
         </div>
@@ -492,6 +494,7 @@
         if (name === 'achievementsScreen') renderAchievements();
         if (name === 'teacher') renderTeacherPanel();
         if (name === 'profile') loadProfileData();
+        if (name === 'menu') updateTeacherButtonVisibility();
     }
 
     // ---------- DATA STATE ----------
@@ -528,6 +531,14 @@
     const mapTrack = document.getElementById('mapTrack');
     let stepElements = [];
     let speechTimeout = null;
+
+    // Helper to show/hide teacher button based on role
+    function updateTeacherButtonVisibility() {
+        const container = document.getElementById('teacherButtonContainer');
+        if (container) {
+            container.style.display = (student.role === 'teacher') ? 'block' : 'none';
+        }
+    }
 
     // ---------- AUTH UI TOGGLE ----------
     let authMode = 'signIn';
@@ -703,6 +714,7 @@
 
         updateUIElements();
         renderAchievements();
+        updateTeacherButtonVisibility();
     }
 
     async function saveProfile() {
@@ -905,7 +917,7 @@
         
         if (timerEnabled) {
             if (currentGame.mode === 'standard') {
-                // Standard mode: reset timer for each new question to the teacher's setting
+                // Standard mode: reset timer for each new question
                 timeLeft = timerSeconds;
                 timerDisplay.innerText = `${timeLeft}s`;
                 startTimer();
@@ -1178,7 +1190,7 @@
         tbody.innerHTML = '';
         if (!currentUser) return;
         const { data: history } = await supabase.from('game_history').select('*').eq('user_id', currentUser.id);
-        if (!history.length) { tbody.innerHTML = '<tr><td colspan="6">No game history.    </td>'; return; }
+        if (!history.length) { tbody.innerHTML = '<table><td colspan="6">No game history.    </td>'; return; }
         history.slice().reverse().forEach(entry => {
             const tr = document.createElement('tr');
             tr.innerHTML = `<td>${entry.date}</td><td>${entry.mode}</td><td>${entry.topics}</td><td>${entry.score}</td><td>${entry.result}</td><td>${entry.xp}</td>`;
@@ -1188,7 +1200,7 @@
 
     // ---------- TEACHER PANEL (shows ALL game history, password prompt works) ----------
     async function renderTeacherPanel() {
-        // ----- Access Control: teacher role OR correct password -----
+        // Access Control: teacher role OR correct password
         if (!isTeacherAuthorized && student.role !== 'teacher') {
             const pwd = prompt('Enter teacher password:');
             if (pwd === teacherPassword) {
@@ -1200,12 +1212,11 @@
             }
         }
 
-        // ----- Class Progress: fetch ALL game history (requires RLS policy for teachers) -----
+        // Class Progress: fetch ALL game history (requires RLS policy for teachers)
         const tbody = document.getElementById('historyTableBody');
         tbody.innerHTML = '<tr><td colspan="8">Loading history...</td></tr>';
 
         try {
-            // Fetch all game history (no user_id filter)
             const { data: allHistory, error: historyError } = await supabase
                 .from('game_history')
                 .select('*')
@@ -1213,9 +1224,9 @@
 
             if (historyError) {
                 console.error('History fetch error:', historyError);
-                tbody.innerHTML = '<tr><td colspan="8">Error loading history. Make sure the teacher policy is applied on game_history. See console.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8">Error loading history. Make sure the teacher policy is applied on game_history. See console. </div>';
             } else if (!allHistory || allHistory.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8">No game history found.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8">No game history found. </div>';
             } else {
                 // Fetch all profiles once and build a lookup map
                 const { data: allProfiles, error: profilesError } = await supabase
@@ -1231,42 +1242,38 @@
                     console.warn('Could not fetch profiles, using defaults', profilesError);
                 }
 
-                // Build rows
                 tbody.innerHTML = '';
                 for (const entry of allHistory) {
                     const profile = profileMap[entry.user_id] || { name: 'Unknown', section: '' };
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td>${escapeHtml(profile.name)}</td>
-                        <td>${escapeHtml(profile.section)}</td>
-                        <td>${escapeHtml(entry.date)}</td>
-                        <td>${escapeHtml(entry.mode)}</td>
-                        <td>${escapeHtml(entry.topics)}</td>
-                        <td>${escapeHtml(entry.score)}</td>
-                        <td>${escapeHtml(entry.result)}</td>
-                        <td>${escapeHtml(entry.xp)}</td>
+                        <td>${escapeHtml(profile.name)}</div>
+                        <td>${escapeHtml(profile.section)}</div>
+                        <td>${escapeHtml(entry.date)}</div>
+                        <td>${escapeHtml(entry.mode)}</div>
+                        <td>${escapeHtml(entry.topics)}</div>
+                        <td>${escapeHtml(entry.score)}</div>
+                        <td>${escapeHtml(entry.result)}</div>
+                        <td>${escapeHtml(entry.xp)}</div>
                     `;
                     tbody.appendChild(tr);
                 }
             }
         } catch (err) {
             console.error('Unexpected error in teacher panel:', err);
-            tbody.innerHTML = '<tr><td colspan="8">Unexpected error loading history.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8">Unexpected error loading history. </div>';
         }
 
-        // ----- Render all other teacher controls (topics, questions, timer) -----
         renderDefaultTopics();
         renderTopicManager();
         renderCustomQuestionEditor();
 
-        // Load current timer settings
         const { data: tEn } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_enabled').single();
         const { data: tSec } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_seconds').single();
         document.getElementById('teacherTimerEnabled').value = tEn ? tEn.value : 'true';
         document.getElementById('teacherTimerSeconds').value = tSec ? tSec.value : '40';
     }
 
-    // Helper to prevent XSS
     function escapeHtml(str) {
         if (!str) return '';
         return String(str).replace(/[&<>]/g, function(m) {
@@ -1277,7 +1284,7 @@
         });
     }
 
-    // ----- Teacher helper functions (each checks authorization) -----
+    // Teacher helper functions (each checks authorization)
     async function saveTimerSettings() {
         if (!isTeacherAuthorized && student.role !== 'teacher') {
             alert('You are not authorized to change timer settings.');
@@ -1518,7 +1525,6 @@
         if ($('achievementsBtn')) $('achievementsBtn').onclick = () => { renderAchievements(); showScreen('achievementsScreen'); };
         if ($('instructionsMenuBtn')) $('instructionsMenuBtn').onclick = () => showScreen('instructions');
         if ($('teacherMenuBtn')) $('teacherMenuBtn').onclick = async () => {
-            // Teacher role or password prompt
             if (student.role === 'teacher') {
                 showScreen('teacher');
                 return;
