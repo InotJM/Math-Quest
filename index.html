@@ -362,7 +362,7 @@
             <button class="menu-btn small-btn" id="saveTimerSettingsBtn">Save Timer</button>
 
             <div class="section-divider"></div>
-            <h3>🔒 Change Teacher Panel Password</h3>
+            <h3>🔒 Change Teacher Password</h3>
             <div class="input-group">
                 <label>Current Password</label>
                 <div class="password-wrapper">
@@ -496,7 +496,7 @@
     }
 
     // --- DATA STATE ---
-    let student = { username: '', name: 'Hero', section: '', avatar: '🧙' };
+    let student = { username: '', name: 'Hero', section: '', avatar: '🧙', role: 'student' };
     let trophies = { trophy1: false, trophy2: false, trophy3: false };
     let stats = { xp: 0, level: 1, totalCorrect: 0, totalGames: 0, bestStreak: 0, achievements: {} };
     let inventory = { timeBoost: 0, extraLife: 0, hint: 0 };
@@ -618,6 +618,9 @@
             id: data.user.id,
             username: username,
             name: fullName,
+            section: '',
+            avatar: '🧙',
+            role: 'student',
             xp: 0,
             level: 1,
             total_correct: 0,
@@ -666,6 +669,7 @@
             student.name = profile.name || 'Hero';
             student.section = profile.section || '';
             student.avatar = profile.avatar || '🧙';
+            student.role = profile.role || 'student';
             stats.xp = profile.xp || 0;
             stats.level = profile.level || 1;
             stats.totalCorrect = profile.total_correct || 0;
@@ -714,6 +718,7 @@
             name: student.name,
             section: student.section,
             avatar: student.avatar,
+            role: student.role,
             xp: stats.xp, level: stats.level,
             total_correct: stats.totalCorrect,
             total_games: stats.totalGames,
@@ -1038,7 +1043,7 @@
         timeLeft = timerSeconds; if (timerDisplay) timerDisplay.innerText = `${timeLeft}s`;
         currentGame = { mode, difficultyBase: diff, selectedTopics: selected, correctCount:0, streak:0, lives:3, gameActive:true, adaptiveFactor:0 };
         showScreen('game'); updateLivesDisplay(); updateActiveTopicsBar(); updateUIElements(); renderMapSteps(); updateUI();
-        feedbackMsg.innerHTML = '⚡ Ready, hero!';
+        feedbackMsg.innerHTML = `⚡ Ready, ${student.name}!`;
         startCountdown(() => { generateQuestion(); playSound('click'); });
     }
     function updateActiveTopicsBar() {
@@ -1060,7 +1065,7 @@
         }, 700);
     }
 
-    // --- PROFILE FUNCTIONS (fixed password change using re-sign-in) ---
+    // --- PROFILE FUNCTIONS ---
     async function loadProfileData() {
         document.getElementById('profileUsernameDisplay').value = student.username || '';
         document.getElementById('profileDisplayName').value = student.name || '';
@@ -1069,65 +1074,65 @@
         await renderMyHistory();
     }
     async function saveProfileChanges() {
-    student.name = document.getElementById('profileDisplayName').value.trim() || 'Hero';
-    student.section = document.getElementById('profileSection').value.trim();
-    student.avatar = document.getElementById('profileAvatar').value;
+        student.name = document.getElementById('profileDisplayName').value.trim() || 'Hero';
+        student.section = document.getElementById('profileSection').value.trim();
+        student.avatar = document.getElementById('profileAvatar').value;
 
-    const { error } = await supabase.from('profiles').upsert({
-        id: currentUser.id,
-        username: student.username,
-        name: student.name,
-        section: student.section,
-        avatar: student.avatar,
-        xp: stats.xp,
-        level: stats.level,
-        total_correct: stats.totalCorrect,
-        total_games: stats.totalGames,
-        best_streak: stats.bestStreak,
-        trophies: trophies,
-        inventory: inventory,
-        achievements: stats.achievements
-    });
+        const { error } = await supabase.from('profiles').upsert({
+            id: currentUser.id,
+            username: student.username,
+            name: student.name,
+            section: student.section,
+            avatar: student.avatar,
+            role: student.role,
+            xp: stats.xp,
+            level: stats.level,
+            total_correct: stats.totalCorrect,
+            total_games: stats.totalGames,
+            best_streak: stats.bestStreak,
+            trophies: trophies,
+            inventory: inventory,
+            achievements: stats.achievements
+        });
 
-    if (error) {
-        console.error('Save profile error:', error);
-        alert('Failed to save profile: ' + error.message);
-    } else {
-        // Update UI and reload data to be safe
-        updateUIElements();
-        await loadAllData();  // reload fresh from DB
-        alert('Profile updated!');
+        if (error) {
+            console.error('Save profile error:', error);
+            alert('Failed to save profile: ' + error.message);
+        } else {
+            updateUIElements();
+            await loadAllData();
+            alert('Profile updated!');
+        }
     }
-}
     async function changePassword() {
-    const newPwd = document.getElementById('newProfilePassword').value;
-    const confirmPwd = document.getElementById('confirmProfilePassword').value;
+        const newPwd = document.getElementById('newProfilePassword').value;
+        const confirmPwd = document.getElementById('confirmProfilePassword').value;
 
-    if (!newPwd || !confirmPwd) {
-        return alert('Please fill in both password fields.');
-    }
-    if (newPwd !== confirmPwd) {
-        return alert('New passwords do not match.');
-    }
-    if (newPwd.length < 6) {
-        return alert('Password must be at least 6 characters.');
-    }
+        if (!newPwd || !confirmPwd) {
+            return alert('Please fill in both password fields.');
+        }
+        if (newPwd !== confirmPwd) {
+            return alert('New passwords do not match.');
+        }
+        if (newPwd.length < 6) {
+            return alert('Password must be at least 6 characters.');
+        }
 
-    const { error } = await supabase.auth.updateUser({ password: newPwd });
-    if (error) {
-        alert('Password change failed: ' + error.message);
-    } else {
-        alert('Password changed successfully!');
-        document.getElementById('newProfilePassword').value = '';
-        document.getElementById('confirmProfilePassword').value = '';
+        const { error } = await supabase.auth.updateUser({ password: newPwd });
+        if (error) {
+            alert('Password change failed: ' + error.message);
+        } else {
+            alert('Password changed successfully!');
+            document.getElementById('newProfilePassword').value = '';
+            document.getElementById('confirmProfilePassword').value = '';
+        }
     }
-}
     async function renderMyHistory() {
         const tbody = document.getElementById('myHistoryTableBody');
         tbody.innerHTML = '';
         if (!currentUser) return;
         const { data: history } = await supabase.from('game_history').select('*').eq('user_id', currentUser.id);
-        if (!history.length) { tbody.innerHTML = '<tr><td colspan="6">No game history. </td></tr>'; return; }
+        if (!history.length) { tbody.innerHTML = '<tr><td colspan="6">No game history.  </td></tr>'; return; }
         history.slice().reverse().forEach(entry => {
             const tr = document.createElement('tr');
             tr.innerHTML = `<td>${entry.date}</td><td>${entry.mode}</td><td>${entry.topics}</td><td>${entry.score}</td><td>${entry.result}</td><td>${entry.xp}</td>`;
@@ -1135,33 +1140,68 @@
         });
     }
 
-    // --- TEACHER PANEL (added Save All Changes button) ---
+    // --- TEACHER PANEL ---
     async function renderTeacherPanel() {
         if (!currentUser) return;
-        const { data: allHistory } = await supabase.from('game_history').select('*');
-        const historyRows = [];
-        for (let row of allHistory) {
-            const { data: prof } = await supabase.from('profiles').select('name, section').eq('id', row.user_id).single();
-            historyRows.push({ ...row, name: prof ? prof.name : 'Unknown', section: prof ? prof.section : '' });
+        
+        const { data: currentProfile } = await supabase.from('profiles').select('role').eq('id', currentUser.id).single();
+        if (currentProfile?.role !== 'teacher') {
+            alert('Teacher access only. This panel is for teachers only.');
+            showScreen('menu');
+            return;
         }
+        
+        const { data: allHistory, error: historyError } = await supabase
+            .from('game_history')
+            .select(`
+                *,
+                profiles!inner (name, section, username, role)
+            `)
+            .order('date', { ascending: false });
+        
+        if (historyError) {
+            console.error('History fetch error:', historyError);
+            document.getElementById('historyTableBody').innerHTML = '<tr><td colspan="8">Error loading history.</td></tr>';
+            return;
+        }
+        
         const tbody = document.getElementById('historyTableBody');
         tbody.innerHTML = '';
-        if (historyRows.length) {
-            historyRows.slice().reverse().forEach(r => {
+        
+        if (!allHistory || allHistory.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8">No game history found.</td></tr>';
+        } else {
+            allHistory.forEach(entry => {
+                const profile = entry.profiles;
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${r.name}</td><td>${r.section}</td><td>${r.date}</td><td>${r.mode}</td><td>${r.topics}</td><td>${r.score}</td><td>${r.result}</td><td>${r.xp}</td>`;
+                tr.innerHTML = `
+                    <td>${profile?.name || 'Unknown'}</td>
+                    <td>${profile?.section || ''}</td>
+                    <td>${entry.date}</td>
+                    <td>${entry.mode}</td>
+                    <td>${entry.topics}</td>
+                    <td>${entry.score}</td>
+                    <td>${entry.result}</td>
+                    <td>${entry.xp}</td>
+                `;
                 tbody.appendChild(tr);
             });
         }
+        
         renderDefaultTopics();
         renderTopicManager();
         renderCustomQuestionEditor();
+        
         const { data: tEn } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_enabled').single();
         const { data: tSec } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_seconds').single();
         document.getElementById('teacherTimerEnabled').value = tEn ? tEn.value : 'true';
         document.getElementById('teacherTimerSeconds').value = tSec ? tSec.value : '40';
     }
     async function saveTimerSettings() {
+        if (student.role !== 'teacher') {
+            alert('Only teachers can change timer settings.');
+            return;
+        }
         const enabled = document.getElementById('teacherTimerEnabled').value;
         const seconds = document.getElementById('teacherTimerSeconds').value;
         await supabase.from('teacher_settings').upsert({ key: 'timer_enabled', value: enabled });
@@ -1183,6 +1223,10 @@
         });
     }
     async function saveDefaultTopics() {
+        if (student.role !== 'teacher') {
+            alert('Only teachers can change default topics.');
+            return;
+        }
         await supabase.from('default_topics').delete().neq('id',0);
         const checks = document.querySelectorAll('.default-topic-chk:checked');
         const inserts = Array.from(checks).map(cb => ({ topic_key: cb.value }));
@@ -1221,6 +1265,10 @@
     }
 
     async function saveTopicChanges() {
+        if (student.role !== 'teacher') {
+            alert('Only teachers can manage topics.');
+            return;
+        }
         const inputs = document.querySelectorAll('#topicManagerList input[data-key]');
         const updates = [];
         inputs.forEach(input => {
@@ -1243,6 +1291,10 @@
     }
 
     async function addNewTopic() {
+        if (student.role !== 'teacher') {
+            alert('Only teachers can add topics.');
+            return;
+        }
         const key = document.getElementById('newTopicKey').value.trim().toLowerCase().replace(/\s+/g, '');
         const name = document.getElementById('newTopicName').value.trim();
         if (!key || !name) return alert('Both fields required.');
@@ -1252,6 +1304,10 @@
         document.getElementById('newTopicKey').value = ''; document.getElementById('newTopicName').value = '';
     }
     async function deleteTopic(key) {
+        if (student.role !== 'teacher') {
+            alert('Only teachers can delete topics.');
+            return;
+        }
         if (!confirm(`Delete topic "${topicNames[key]||key}"?`)) return;
         await supabase.from('topics').delete().eq('key', key);
         await supabase.from('default_topics').delete().eq('topic_key', key);
@@ -1259,6 +1315,10 @@
         await loadAllData(); renderTopicManager(); renderDefaultTopics(); renderCustomQuestionEditor();
     }
     async function resetTopics() {
+        if (student.role !== 'teacher') {
+            alert('Only teachers can reset topics.');
+            return;
+        }
         if (!confirm('Reset to original 8 topics? Custom topics and questions will be lost.')) return;
         const defaults = ['arithmetic','fractions','algebra','wordproblems','patterns','geometry','percentages','probability'];
         const names = ['➕ Arithmetic','🧮 Fractions','📐 Algebra','📝 Word','🔢 Patterns','📏 Geometry','📊 Percent','🎲 Probability'];
@@ -1291,6 +1351,10 @@
         listDiv.querySelectorAll('.delete-q-btn').forEach(btn => btn.onclick = () => deleteCustomQuestion(parseInt(btn.dataset.index)));
     }
     async function addCustomQuestion() {
+        if (student.role !== 'teacher') {
+            alert('Only teachers can add custom questions.');
+            return;
+        }
         const topic = document.getElementById('editorTopicSelect').value;
         const text = document.getElementById('newQuestionText').value.trim();
         const ans = document.getElementById('newQuestionAnswer').value.trim();
@@ -1300,6 +1364,10 @@
         document.getElementById('newQuestionText').value = ''; document.getElementById('newQuestionAnswer').value = '';
     }
     async function editCustomQuestion(index) {
+        if (student.role !== 'teacher') {
+            alert('Only teachers can edit custom questions.');
+            return;
+        }
         const topic = document.getElementById('editorTopicSelect').value;
         if (!customQuestions[topic]) return;
         const q = customQuestions[topic][index];
@@ -1312,6 +1380,10 @@
         await loadAllData(); renderCustomQuestionsList();
     }
     async function deleteCustomQuestion(index) {
+        if (student.role !== 'teacher') {
+            alert('Only teachers can delete custom questions.');
+            return;
+        }
         if (!confirm('Delete this question?')) return;
         const topic = document.getElementById('editorTopicSelect').value;
         const { data: questions } = await supabase.from('custom_questions').select('id').eq('topic', topic);
@@ -1320,12 +1392,20 @@
         await loadAllData(); renderCustomQuestionsList();
     }
     async function clearHistory() {
+        if (student.role !== 'teacher') {
+            alert('Only teachers can clear history.');
+            return;
+        }
         if (confirm('Delete all game history?')) {
             await supabase.from('game_history').delete().neq('id', 0);
             renderTeacherPanel();
         }
     }
     async function changeTeacherPassword() {
+        if (student.role !== 'teacher') {
+            alert('Only teachers can change the teacher password.');
+            return;
+        }
         const curr = document.getElementById('currentPwd').value;
         const newPwd = document.getElementById('newPwd').value;
         const repeat = document.getElementById('repeatNewPwd').value;
@@ -1360,9 +1440,16 @@
         if ($('achievementsBtn')) $('achievementsBtn').onclick = () => { renderAchievements(); showScreen('achievementsScreen'); };
         if ($('instructionsMenuBtn')) $('instructionsMenuBtn').onclick = () => showScreen('instructions');
         if ($('teacherMenuBtn')) $('teacherMenuBtn').onclick = async () => {
+            if (student.role === 'teacher') {
+                showScreen('teacher');
+                return;
+            }
             const pwd = prompt('Enter teacher password:');
-            if (pwd === teacherPassword) showScreen('teacher');
-            else if (pwd) alert('Incorrect!');
+            if (pwd === teacherPassword) {
+                showScreen('teacher');
+            } else if (pwd) {
+                alert('Incorrect!');
+            }
         };
 
         // Profile
