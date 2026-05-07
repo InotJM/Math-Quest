@@ -922,9 +922,9 @@
                 timerDisplay.innerText = `${timeLeft}s`;
                 startTimer();
             } else if (currentGame.mode === 'timeattack') {
-                // Time Attack mode: start timer only once at the beginning of the game
+                // Time Attack mode: resume timer if not already active, do NOT reset timeLeft
                 if (!timerActive) {
-                    timeLeft = timerSeconds;
+                    // Simply start the timer with the current remaining time
                     timerDisplay.innerText = `${timeLeft}s`;
                     startTimer();
                 }
@@ -1190,7 +1190,7 @@
         tbody.innerHTML = '';
         if (!currentUser) return;
         const { data: history } = await supabase.from('game_history').select('*').eq('user_id', currentUser.id);
-        if (!history.length) { tbody.innerHTML = '<table><td colspan="6">No game history.    </td>'; return; }
+        if (!history.length) { tbody.innerHTML = '<tr><td colspan="6">No game history.    </td>'; return; }
         history.slice().reverse().forEach(entry => {
             const tr = document.createElement('tr');
             tr.innerHTML = `<td>${entry.date}</td><td>${entry.mode}</td><td>${entry.topics}</td><td>${entry.score}</td><td>${entry.result}</td><td>${entry.xp}</td>`;
@@ -1214,7 +1214,7 @@
 
         // Class Progress: fetch ALL game history (requires RLS policy for teachers)
         const tbody = document.getElementById('historyTableBody');
-        tbody.innerHTML = '<tr><td colspan="8">Loading history...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8">Loading history...</div>';
 
         try {
             const { data: allHistory, error: historyError } = await supabase
@@ -1224,9 +1224,9 @@
 
             if (historyError) {
                 console.error('History fetch error:', historyError);
-                tbody.innerHTML = '<tr><td colspan="8">Error loading history. Make sure the teacher policy is applied on game_history. See console. </div>';
+                tbody.innerHTML = '<tr><td colspan="8">Error loading history. Make sure the teacher policy is applied on game_history. See console.</div>';
             } else if (!allHistory || allHistory.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8">No game history found. </div>';
+                tbody.innerHTML = '<tr><td colspan="8">No game history found.</div>';
             } else {
                 // Fetch all profiles once and build a lookup map
                 const { data: allProfiles, error: profilesError } = await supabase
@@ -1261,7 +1261,7 @@
             }
         } catch (err) {
             console.error('Unexpected error in teacher panel:', err);
-            tbody.innerHTML = '<tr><td colspan="8">Unexpected error loading history. </div>';
+            tbody.innerHTML = '<tr><td colspan="8">Unexpected error loading history.</div>';
         }
 
         renderDefaultTopics();
