@@ -507,7 +507,7 @@
     let stats = { xp: 0, level: 1, totalCorrect: 0, totalGames: 0, bestStreak: 0, achievements: {} };
     let inventory = { timeBoost: 0, extraLife: 0, hint: 0 };
     let currentUser = null;
-    let isTeacherAuthorized = false;   // becomes true after correct password entry
+    let isTeacherAuthorized = false;
 
     let currentGame = {
         mode: 'standard', difficultyBase: 'medium', selectedTopics: [],
@@ -536,7 +536,6 @@
     let stepElements = [];
     let speechTimeout = null;
 
-    // Helper to show/hide teacher button based on role
     function updateTeacherButtonVisibility() {
         const container = document.getElementById('teacherButtonContainer');
         if (container) {
@@ -555,7 +554,6 @@
         document.getElementById('authError').innerText = '';
     }
 
-    // ---------- PASSWORD TOGGLE ----------
     function setupPasswordToggles() {
         document.querySelectorAll('.toggle-password').forEach(toggle => {
             toggle.addEventListener('click', function() {
@@ -569,7 +567,6 @@
         });
     }
 
-    // ---------- VALIDATION ----------
     function isValidUsername(username) {
         const regex = /^[a-zA-Z0-9._-]+$/;
         return regex.test(username) && username.length >= 3 && username.length <= 20;
@@ -739,7 +736,6 @@
         });
     }
 
-    // ---------- UI UPDATES ----------
     function updateUIElements() {
         document.getElementById('playerLevel').innerText = stats.level;
         document.getElementById('playerXP').innerText = stats.xp;
@@ -921,14 +917,11 @@
         
         if (timerEnabled) {
             if (currentGame.mode === 'standard') {
-                // Standard mode: reset timer for each new question
                 timeLeft = timerSeconds;
                 timerDisplay.innerText = `${timeLeft}s`;
                 startTimer();
             } else if (currentGame.mode === 'timeattack') {
-                // Time Attack mode: resume timer if not already active, do NOT reset timeLeft
                 if (!timerActive) {
-                    // Simply start the timer with the current remaining time
                     timerDisplay.innerText = `${timeLeft}s`;
                     startTimer();
                 }
@@ -1075,7 +1068,6 @@
         if (selected.length < 3) { document.getElementById('topicWarning').innerText = 'Select at least 3 topics!'; return; }
         document.getElementById('topicWarning').innerText = '';
         
-        // Load timer settings from teacher settings
         const { data: tEn } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_enabled').single();
         const { data: tSec } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_seconds').single();
         timerEnabled = tEn ? tEn.value === 'true' : true;
@@ -1202,9 +1194,8 @@
         });
     }
 
-    // ---------- TEACHER PANEL (shows ALL game history, password prompt works) ----------
+    // ---------- TEACHER PANEL ----------
     async function renderTeacherPanel() {
-        // Access Control: teacher role OR correct password
         if (!isTeacherAuthorized && student.role !== 'teacher') {
             const pwd = prompt('Enter teacher password:');
             if (pwd === teacherPassword) {
@@ -1216,7 +1207,6 @@
             }
         }
 
-        // Class Progress: fetch ALL game history (requires RLS policy for teachers)
         const tbody = document.getElementById('historyTableBody');
         tbody.innerHTML = '<tr><td colspan="8">Loading history...</div>';
 
@@ -1228,11 +1218,10 @@
 
             if (historyError) {
                 console.error('History fetch error:', historyError);
-                tbody.innerHTML = '<tr><td colspan="8">Error loading history. Make sure the teacher policy is applied on game_history. See console.</div>';
+                tbody.innerHTML = '<tr><td colspan="8">Error loading history. See console.</div>';
             } else if (!allHistory || allHistory.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="8">No game history found.</div>';
             } else {
-                // Fetch all profiles once and build a lookup map
                 const { data: allProfiles, error: profilesError } = await supabase
                     .from('profiles')
                     .select('id, name, section');
@@ -1242,8 +1231,6 @@
                     allProfiles.forEach(prof => {
                         profileMap[prof.id] = { name: prof.name || 'Unknown', section: prof.section || '' };
                     });
-                } else {
-                    console.warn('Could not fetch profiles, using defaults', profilesError);
                 }
 
                 tbody.innerHTML = '';
@@ -1288,7 +1275,6 @@
         });
     }
 
-    // Teacher helper functions (each checks authorization)
     async function saveTimerSettings() {
         if (!isTeacherAuthorized && student.role !== 'teacher') {
             alert('You are not authorized to change timer settings.');
@@ -1512,7 +1498,6 @@
     // ---------- EVENT BINDINGS ----------
     function bindEvents() {
         const $ = (id) => document.getElementById(id);
-        // Auth
         if ($('toggleAuthMode')) $('toggleAuthMode').onclick = () => setAuthMode(authMode === 'signIn' ? 'signUp' : 'signIn');
         const signInBtn = document.getElementById('signInBtn');
         if (signInBtn) {
@@ -1523,7 +1508,6 @@
         if ($('signUpBtn')) $('signUpBtn').onclick = signUp;
         if ($('signOutBtn')) $('signOutBtn').onclick = signOut;
 
-        // Menu
         if ($('playBtn')) $('playBtn').onclick = () => showScreen('setup');
         if ($('profileMenuBtn')) $('profileMenuBtn').onclick = () => showScreen('profile');
         if ($('achievementsBtn')) $('achievementsBtn').onclick = () => { renderAchievements(); showScreen('achievementsScreen'); };
@@ -1542,16 +1526,13 @@
             }
         };
 
-        // Profile
         if ($('saveProfileBtn')) $('saveProfileBtn').onclick = saveProfileChanges;
         if ($('changePasswordBtn')) $('changePasswordBtn').onclick = changePassword;
         if ($('backFromProfileBtn')) $('backFromProfileBtn').onclick = () => showScreen('menu');
 
-        // Achievements / Instructions
         if ($('backFromAchievementsBtn')) $('backFromAchievementsBtn').onclick = () => showScreen('menu');
         if ($('backFromInstructionsBtn')) $('backFromInstructionsBtn').onclick = () => showScreen('menu');
 
-        // Teacher panel actions
         if ($('backFromTeacherBtn')) $('backFromTeacherBtn').onclick = () => showScreen('menu');
         if ($('saveDefaultTopicsBtn')) $('saveDefaultTopicsBtn').onclick = saveDefaultTopics;
         if ($('addQuestionBtn')) $('addQuestionBtn').onclick = addCustomQuestion;
@@ -1562,7 +1543,6 @@
         if ($('saveTimerSettingsBtn')) $('saveTimerSettingsBtn').onclick = saveTimerSettings;
         if ($('saveTopicChangesBtn')) $('saveTopicChangesBtn').onclick = saveTopicChanges;
 
-        // Setup / Game
         if ($('backFromSetupBtn')) $('backFromSetupBtn').onclick = () => showScreen('menu');
         if ($('startGameBtn')) $('startGameBtn').onclick = startNewGame;
         if ($('menuFromGameBtn')) $('menuFromGameBtn').onclick = () => { if (confirm('Exit game?')) { stopTimer(); showScreen('menu'); } };
@@ -1591,13 +1571,14 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();
 })();
+</script>
 
-    <script>
+<script>
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
+    window.addEventListener('load', function() {
       navigator.serviceWorker.register('./sw.js')
-        .then(reg => console.log('Service Worker registered', reg))
-        .catch(err => console.error('Service Worker registration failed', err));
+        .then(function(reg) { console.log('Service Worker registered', reg); })
+        .catch(function(err) { console.error('Service Worker registration failed', err); });
     });
   }
 </script>
