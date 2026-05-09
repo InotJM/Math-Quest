@@ -2,7 +2,8 @@
   "name": "Math Quest Trophy Hunt",
   "short_name": "Math Quest",
   "description": "A fun math game where you solve questions to earn trophies and XP.",
-  "start_url": ".",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "theme_color": "#2d4a2d",
   "background_color": "#1a2f1d",
@@ -44,7 +45,7 @@
       "type": "image/png"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "icons/icon512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
