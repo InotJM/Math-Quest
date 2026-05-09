@@ -476,6 +476,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+    window.addEventListener('online', () => location.reload());
+window.addEventListener('offline', () => {
+    alert('You are offline. Please connect to the internet to play.');
+});
 (function() {
     // ---------- CONFIGURATION ----------
     const SUPABASE_URL = 'https://retwqpcvjomeyfefuvdw.supabase.co';
