@@ -172,9 +172,31 @@
             max-height: 200px; overflow-y: auto; background: #fcf9f0; border-radius: 20px;
             border: 2px solid #7b5d3c; margin: 12px 0;
         }
-        .history-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-        .history-table th, .history-table td { padding: 8px; border-bottom: 1px solid #ccc; text-align: center; }
-        .history-table th { background: #e9dbbc; position: sticky; top: 0; }
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+        .history-table th, .history-table td {
+            padding: 8px;
+            border-bottom: 1px solid #ccc;
+            text-align: center;
+        }
+        .history-table th {
+            background: #e9dbbc;
+            position: sticky;
+            top: 0;
+            cursor: pointer;
+            user-select: none;
+        }
+        .history-table th:hover {
+            background: #d8c99e;
+        }
+        .sort-icon {
+            font-size: 0.7rem;
+            margin-left: 5px;
+            display: inline-block;
+        }
         .question-editor-item {
             display: flex; align-items: center; gap: 8px; margin: 8px 0; background: #fcf9f0;
             padding: 8px; border-radius: 20px; flex-wrap: wrap;
@@ -337,14 +359,25 @@
         </div>
     </div>
 
-    <!-- TEACHER PANEL (without "Change Teacher Password" section) -->
+    <!-- TEACHER PANEL -->
     <div id="teacherScreen" class="screen">
         <div class="content-panel">
             <div class="panel-title"><i class="fas fa-chalkboard-teacher"></i> Teacher Panel</div>
-            <h3>📊 Class Progress</h3>
+            <h3>📊 Class Progress (Click table headers to sort)</h3>
             <div class="table-container" id="historyTableContainer">
-                <table class="history-table">
-                    <thead><tr><th>Name</th><th>Section</th><th>Date</th><th>Mode</th><th>Topics</th><th>Score</th><th>Result</th><th>XP</th></tr></thead>
+                <table class="history-table" id="classProgressTable">
+                    <thead>
+                        <tr>
+                            <th data-sort="name">Name <span class="sort-icon"></span></th>
+                            <th data-sort="section">Section <span class="sort-icon"></span></th>
+                            <th data-sort="date">Date <span class="sort-icon"></span></th>
+                            <th data-sort="mode">Mode <span class="sort-icon"></span></th>
+                            <th data-sort="topics">Topics <span class="sort-icon"></span></th>
+                            <th data-sort="score">Score <span class="sort-icon"></span></th>
+                            <th data-sort="result">Result <span class="sort-icon"></span></th>
+                            <th data-sort="xp">XP <span class="sort-icon"></span></th>
+                        </tr>
+                    </thead>
                     <tbody id="historyTableBody"></tbody>
                 </table>
             </div>
@@ -476,9 +509,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-window.addEventListener('offline', () => {
-    alert('You are offline. Please connect to the internet to play.');
-});
 (function() {
     // ---------- CONFIGURATION ----------
     const SUPABASE_URL = 'https://retwqpcvjomeyfefuvdw.supabase.co';
@@ -1194,12 +1224,71 @@ window.addEventListener('offline', () => {
         if (!history.length) { tbody.innerHTML = '<tr><td colspan="6">No game history.    </td>'; return; }
         history.slice().reverse().forEach(entry => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `｜｜DSML｜｜${entry.date}</td><td>${entry.mode}</td><td>${entry.topics}</td><td>${entry.score}</td><td>${entry.result}</td><td>${entry.xp}</td>`;
+            tr.innerHTML = `<td>${entry.date}</td><td>${entry.mode}</td><td>${entry.topics}</td><td>${entry.score}</td><td>${entry.result}</td><td>${entry.xp}</td>`;
             tbody.appendChild(tr);
         });
     }
 
-    // ---------- TEACHER PANEL ----------
+    // ---------- TEACHER PANEL WITH SORTING ----------
+    let currentHistoryData = []; // store raw history entries with profile info
+    let currentSort = { column: 'date', direction: 'desc' }; // default sort by date descending
+
+    function sortHistoryData(data, column, direction) {
+        return [...data].sort((a, b) => {
+            let valA, valB;
+            switch(column) {
+                case 'name': valA = a.playerName || ''; valB = b.playerName || ''; break;
+                case 'section': valA = a.playerSection || ''; valB = b.playerSection || ''; break;
+                case 'date': valA = new Date(a.date); valB = new Date(b.date); break;
+                case 'mode': valA = a.mode || ''; valB = b.mode || ''; break;
+                case 'topics': valA = a.topics || ''; valB = b.topics || ''; break;
+                case 'score': valA = a.score || 0; valB = b.score || 0; break;
+                case 'result': valA = a.result || ''; valB = b.result || ''; break;
+                case 'xp': valA = a.xp || 0; valB = b.xp || 0; break;
+                default: return 0;
+            }
+            if (valA < valB) return direction === 'asc' ? -1 : 1;
+            if (valA > valB) return direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }
+
+    function renderHistoryTable() {
+        const tbody = document.getElementById('historyTableBody');
+        if (!tbody) return;
+        if (!currentHistoryData.length) {
+            tbody.innerHTML = '<tr><td colspan="8">No game history found.</div>';
+            return;
+        }
+        const sorted = sortHistoryData(currentHistoryData, currentSort.column, currentSort.direction);
+        tbody.innerHTML = '';
+        for (const entry of sorted) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${escapeHtml(entry.playerName)}</div>
+                <td>${escapeHtml(entry.playerSection)}</div>
+                <td>${escapeHtml(entry.date)}</div>
+                <td>${escapeHtml(entry.mode)}</div>
+                <td>${escapeHtml(entry.topics)}</div>
+                <td>${escapeHtml(entry.score)}</div>
+                <td>${escapeHtml(entry.result)}</div>
+                <td>${escapeHtml(entry.xp)}</div>
+            `;
+            tbody.appendChild(tr);
+        }
+        // Update sort icons
+        const headers = document.querySelectorAll('#classProgressTable th');
+        headers.forEach(th => {
+            const column = th.getAttribute('data-sort');
+            const iconSpan = th.querySelector('.sort-icon');
+            if (column === currentSort.column) {
+                iconSpan.innerHTML = currentSort.direction === 'asc' ? ' ▲' : ' ▼';
+            } else {
+                iconSpan.innerHTML = '';
+            }
+        });
+    }
+
     async function renderTeacherPanel() {
         if (!isTeacherAuthorized && student.role !== 'teacher') {
             const pwd = prompt('Enter teacher password:');
@@ -1226,6 +1315,7 @@ window.addEventListener('offline', () => {
                 tbody.innerHTML = '<tr><td colspan="8">Error loading history. See console.</div>';
             } else if (!allHistory || allHistory.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="8">No game history found.</div>';
+                currentHistoryData = [];
             } else {
                 const { data: allProfiles, error: profilesError } = await supabase
                     .from('profiles')
@@ -1238,26 +1328,23 @@ window.addEventListener('offline', () => {
                     });
                 }
 
-                tbody.innerHTML = '';
+                currentHistoryData = [];
                 for (const entry of allHistory) {
                     const profile = profileMap[entry.user_id] || { name: 'Unknown', section: '' };
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${escapeHtml(profile.name)}</div>
-                        <td>${escapeHtml(profile.section)}</div>
-                        <td>${escapeHtml(entry.date)}</div>
-                        <td>${escapeHtml(entry.mode)}</div>
-                        <td>${escapeHtml(entry.topics)}</div>
-                        <td>${escapeHtml(entry.score)}</div>
-                        <td>${escapeHtml(entry.result)}</div>
-                        <td>${escapeHtml(entry.xp)}</div>
-                    `;
-                    tbody.appendChild(tr);
+                    currentHistoryData.push({
+                        ...entry,
+                        playerName: profile.name,
+                        playerSection: profile.section
+                    });
                 }
+                // Apply default sort (by date descending)
+                currentSort = { column: 'date', direction: 'desc' };
+                renderHistoryTable();
             }
         } catch (err) {
             console.error('Unexpected error in teacher panel:', err);
             tbody.innerHTML = '<tr><td colspan="8">Unexpected error loading history.</div>';
+            currentHistoryData = [];
         }
 
         renderDefaultTopics();
@@ -1268,6 +1355,26 @@ window.addEventListener('offline', () => {
         const { data: tSec } = await supabase.from('teacher_settings').select('value').eq('key', 'timer_seconds').single();
         document.getElementById('teacherTimerEnabled').value = tEn ? tEn.value : 'true';
         document.getElementById('teacherTimerSeconds').value = tSec ? tSec.value : '40';
+
+        // Attach sorting event listeners
+        const headers = document.querySelectorAll('#classProgressTable th');
+        headers.forEach(th => {
+            th.removeEventListener('click', sortClickHandler);
+            th.addEventListener('click', sortClickHandler);
+        });
+    }
+
+    function sortClickHandler(event) {
+        const th = event.currentTarget;
+        const column = th.getAttribute('data-sort');
+        if (!column) return;
+        if (currentSort.column === column) {
+            currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            currentSort.column = column;
+            currentSort.direction = 'asc';
+        }
+        renderHistoryTable();
     }
 
     function escapeHtml(str) {
