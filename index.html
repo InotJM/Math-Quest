@@ -124,37 +124,34 @@
         #continueBtn { background: #6f8f6f; border-bottom-color: #3a5e3a; display: none; }
         .feedback { background: #e9dbc9; padding: 10px; border-radius: 40px; text-align: center; margin: 10px 0; font-weight: 600; }
         .topic-checkbox-group {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, auto));
-    gap: 12px;
-    margin: 12px 0;
-}
-
-.topic-checkbox {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: #fcf9f0;
-    padding: 8px 12px;
-    border-radius: 40px;
-    border: 1px solid #b99b6b;
-    font-size: 0.9rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* On narrow phones (iPhone SE, small Android), allow text to wrap and adjust padding */
-@media (max-width: 480px) {
-    .topic-checkbox-group {
-        grid-template-columns: 1fr;
-    }
-    .topic-checkbox {
-        white-space: normal;
-        word-break: normal;
-        padding: 8px 12px;
-    }
-}
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, auto));
+            gap: 12px;
+            margin: 12px 0;
+        }
+        .topic-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #fcf9f0;
+            padding: 8px 12px;
+            border-radius: 40px;
+            border: 1px solid #b99b6b;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        @media (max-width: 480px) {
+            .topic-checkbox-group {
+                grid-template-columns: 1fr;
+            }
+            .topic-checkbox {
+                white-space: normal;
+                word-break: normal;
+                padding: 8px 12px;
+            }
+        }
         .achievement-badge {
             background: #2e5e2e; color: gold; border-radius: 40px; padding: 6px 12px;
             font-size: 0.8rem; display: inline-block; margin: 4px;
@@ -340,7 +337,7 @@
         </div>
     </div>
 
-    <!-- TEACHER PANEL -->
+    <!-- TEACHER PANEL (without "Change Teacher Password" section) -->
     <div id="teacherScreen" class="screen">
         <div class="content-panel">
             <div class="panel-title"><i class="fas fa-chalkboard-teacher"></i> Teacher Panel</div>
@@ -396,31 +393,6 @@
                 <input type="number" id="teacherTimerSeconds" min="5" max="300">
             </div>
             <button class="menu-btn small-btn" id="saveTimerSettingsBtn">Save Timer</button>
-
-            <div class="section-divider"></div>
-            <h3>🔒 Change Teacher Password</h3>
-            <div class="input-group">
-                <label>Current Password</label>
-                <div class="password-wrapper">
-                    <input type="password" id="currentPwd">
-                    <span class="toggle-password" data-target="currentPwd"><i class="fas fa-eye"></i></span>
-                </div>
-            </div>
-            <div class="input-group">
-                <label>New Password</label>
-                <div class="password-wrapper">
-                    <input type="password" id="newPwd">
-                    <span class="toggle-password" data-target="newPwd"><i class="fas fa-eye"></i></span>
-                </div>
-            </div>
-            <div class="input-group">
-                <label>Repeat New Password</label>
-                <div class="password-wrapper">
-                    <input type="password" id="repeatNewPwd">
-                    <span class="toggle-password" data-target="repeatNewPwd"><i class="fas fa-eye"></i></span>
-                </div>
-            </div>
-            <button class="menu-btn small-btn" id="changePwdBtn">Update Password</button>
 
             <button class="menu-btn back-btn" id="backFromTeacherBtn" style="margin-top:20px;">Back</button>
         </div>
@@ -1219,7 +1191,7 @@
         if (!history.length) { tbody.innerHTML = '<tr><td colspan="6">No game history.    </td>'; return; }
         history.slice().reverse().forEach(entry => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${entry.date}</td><td>${entry.mode}</td><td>${entry.topics}</td><td>${entry.score}</td><td>${entry.result}</td><td>${entry.xp}</td>`;
+            tr.innerHTML = `｜｜DSML｜｜${entry.date}</td><td>${entry.mode}</td><td>${entry.topics}</td><td>${entry.score}</td><td>${entry.result}</td><td>${entry.xp}</td>`;
             tbody.appendChild(tr);
         });
     }
@@ -1506,24 +1478,6 @@
             renderTeacherPanel();
         }
     }
-    async function changeTeacherPassword() {
-        if (!isTeacherAuthorized && student.role !== 'teacher') {
-            alert('You are not authorized to change the teacher password.');
-            return;
-        }
-        const curr = document.getElementById('currentPwd').value;
-        const newPwd = document.getElementById('newPwd').value;
-        const repeat = document.getElementById('repeatNewPwd').value;
-        const { data: pw } = await supabase.from('teacher_settings').select('value').eq('key', 'teacher_password').single();
-        if (curr !== pw.value) return alert('Incorrect current password.');
-        if (!newPwd || newPwd !== repeat) return alert('New passwords do not match.');
-        await supabase.from('teacher_settings').upsert({ key: 'teacher_password', value: newPwd });
-        teacherPassword = newPwd;
-        alert('Password updated!');
-        document.getElementById('currentPwd').value = '';
-        document.getElementById('newPwd').value = '';
-        document.getElementById('repeatNewPwd').value = '';
-    }
 
     // ---------- EVENT BINDINGS ----------
     function bindEvents() {
@@ -1569,7 +1523,6 @@
         if ($('clearHistoryBtn')) $('clearHistoryBtn').onclick = clearHistory;
         if ($('addTopicBtn')) $('addTopicBtn').onclick = addNewTopic;
         if ($('resetTopicsBtn')) $('resetTopicsBtn').onclick = resetTopics;
-        if ($('changePwdBtn')) $('changePwdBtn').onclick = changeTeacherPassword;
         if ($('saveTimerSettingsBtn')) $('saveTimerSettingsBtn').onclick = saveTimerSettings;
         if ($('saveTopicChangesBtn')) $('saveTopicChangesBtn').onclick = saveTopicChanges;
 
